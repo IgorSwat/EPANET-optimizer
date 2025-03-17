@@ -1,0 +1,10 @@
+.vscode
+venv
+
+build/**
+
+EPANET/EPANET_2.2/**
+EPANET/api/**
+!EPANET/api/.gitkeep
+
+*.docx
