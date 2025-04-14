@@ -1,0 +1,1114 @@
+# WhiteSharkOptimizer
+
+```elixir
+Mix.install([
+  {:nx, "~> 0.9.2"}
+], force: true)
+
+```
+
+## Section
+
+```elixir
+defmodule Rosenbrock3D do
+
+  def evaluate(x, y, z, a \\ 1, b \\ 100) do
+    (a - x) * (a - x) +
+      b * (y - x * x) * (y - x * x) +
+      (a - y) * (a - y) +
+      b * (z - y * y) * (z - y * y)
+  end
+  def evaluate_nx(u \\ Nx.tensor([1.0, 1.0, 1.0], type: {:f, 32}), a \\ 1.0, b \\ 100.0) do
+    # Split u into x, y, z components
+    [x, y, z] = Nx.to_flat_list(u)
+    
+    # Compute the Rosenbrock function for 3D
+    evaluate(x + :math.exp(0.5), y + :math.pi() + 1, z - :math.sqrt(2), a, b)
+  end
+  
+end
+
+
+```
+
+```elixir
+defmodule RosenbrockND do
+
+  def evaluate(u, a \\ 1, b \\ 100) do
+
+    # Pair adjacent elements in u (e.g., [x1, x2, ..., xN] -> [{x1, x2}, {x2, x3}, ...])
+    pairs = Enum.chunk_every(u, 2, 1, :discard)
+    
+    # Calculate the Rosenbrock function for N dimensions
+    Enum.reduce(pairs, 0, fn [x1, x2], acc ->
+      acc + (a - x1) * (a - x1) + b * (x2 - x1 * x1) * (x2 - x1 * x1)
+    end)
+  end
+
+  def evaluate_nx(u \\ Nx.tensor([1.0, 1.0, 1.0], type: {:f, 32}), a \\ 1.0, b \\ 100.0) do
+    # Convert tensor to a flat list for evaluation
+    true_solution = Nx.tensor([:math.exp(0.5), -:math.pi(), :math.sqrt(2), :math.sqrt(3), 0, :math.sin(1), -:math.log(10), :math.exp(-1), -:math.exp(0.2), 3])
+    flat_u = Nx.to_flat_list(Nx.subtract(u, true_solution))
+    # Compute the Rosenbrock function for N dimensions
+    evaluate(flat_u, a, b)
+  end
+end
+
+```
+
+```elixir
+defmodule Hyperparameters do
+  @type t :: %Hyperparameters{
+          p_min: float(),
+          p_max: float(),
+          tau: float(),
+          f_min: float(),
+          f_max: float(),
+          a0: float(),
+          a1: float(),
+          a2: float(),
+          n: integer(),
+          rand_fun: (() -> float()),
+          mu: float() | nil,
+          f: float() | nil
+        }
+
+  defstruct p_min: 0.5,
+            p_max: 1.5,
+            tau: 4.125,
+            f_min: 0.07,
+            f_max: 0.75,
+            a0: 6.25,
+            a1: 100,
+            a2: 0.0005,
+            n: 100,
+            rand_fun: &:rand.uniform/0,
+            mu: nil,
+            f: nil
+  
+  defp compute_mu(tau) do
+    2 / (abs(2 - tau - :math.sqrt(tau * tau - 4 * tau)))
+  end
+
+  defp compute_f(f_max, f_min) do
+    f_min + (f_max - f_min) / (f_max + f_min)
+  end
+  
+  @spec new(map()) :: t()
+  def new(opts \\ %{}) do
+    tau = Map.get(opts, :tau, %__MODULE__{}.tau)
+    f_max = Map.get(opts, :f_max, %__MODULE__{}.f_max)
+    f_min = Map.get(opts, :f_min, %__MODULE__{}.f_min)
+
+
+    %__MODULE__{}
+    |> struct(opts)
+    |> Map.update!(:mu, fn _ -> compute_mu(tau) end)
+    |> Map.update!(:f, fn _ -> compute_f(f_max, f_min) end)
+  end
+
+
+end
+
+defmodule Problem do
+  @type t :: %Problem{
+          name: String.t() | nil,
+          d: integer(),
+          fun: (Nx.Tensor.t() -> float()) | nil,
+          l: Nx.Tensor.t() | nil,
+          u: Nx.Tensor.t() | nil,
+          minimize: boolean(),
+        }
+
+  defstruct name: nil,
+            d: nil,
+            fun: nil,
+            l: nil,
+            u: nil,
+            minimize: true
+
+  @spec new(integer()) :: t()
+  def new(opts \\ %{}) do
+    d = Map.get(opts, :d, 3)
+    fun = case Map.get(opts, :minimize, true) do
+      
+      true -> Map.get(opts, :fun, nil)
+      false -> fn tensor -> -Map.get(opts, :fun, nil).(tensor) end
+    end
+    
+    computed_fields = %{
+      l: Nx.broadcast(-5, {d}),
+      u: Nx.broadcast(5, {d}),
+      fun: fun
+
+    }
+    %__MODULE__{}
+    |> struct(Map.merge(computed_fields, opts))
+    |> struct(opts)
+      
+  end
+end
+
+
+
+
+```
+
+```elixir
+
+hyperparams = Hyperparameters.new(%{n: 10})
+problem = Problem.new(%{d: 3, name: "Rosenbrock3D", fun: &Rosenbrock3D.evaluate_nx/1, minimize: true})
+
+```
+
+```elixir
+Rosenbrock3D.evaluate_nx(problem.u)
+```
+
+```elixir
+defmodule RandomSearch do
+  @type t :: %RandomSearch{
+          problem: Problem.t() | nil,
+          hyperparams: Hyperparameters.t | nil,
+          key: integer() | nil,
+          solution: Nx.Tensor.t | nil,
+          best_fitness: float() | nil
+        }
+  
+  defstruct problem: nil,
+            hyperparams: nil,
+            key: nil,
+            solution: nil,
+            best_fitness: nil
+    
+  @spec new(Problem.t(), Hyperparameters.t(), map()) :: t()
+  def new(problem, hyperparams, opts \\ %{}) do
+    if problem == nil do
+      raise ArgumentError, "Problem must be provided to initialize RandomSearch"
+    end
+    key = Map.get(opts, :key, Nx.Random.key(42))
+
+    {initial_solution, key} = Nx.Random.uniform(key, -5, 5, shape: {problem.d})
+    computed_fields = %{
+      problem: problem,
+      hyperparams: hyperparams,
+      key: key,
+      solution: initial_solution,
+      best_fitness: problem.fun.(initial_solution)
+  }
+    
+  %__MODULE__{}
+  |> struct(Map.merge(computed_fields, opts))
+  end
+  
+  @spec run(t(), integer()) :: t()
+  def run(rs, end_time) do
+    if System.monotonic_time() > end_time do
+      rs
+    else
+      key = rs.key
+      best_fitness = rs.best_fitness
+      best_solution = rs.solution
+  
+      {updated_solution, updated_fitness, updated_key} =
+        Enum.reduce(1..10, {best_solution, best_fitness, key}, fn _i, {current_solution, current_fitness, current_key} ->
+          {rand_solution, new_key} = Nx.Random.uniform(current_key, -5, 5, shape: {rs.problem.d})
+          new_fitness_value = rs.problem.fun.(rand_solution)
+  
+          if new_fitness_value < current_fitness do
+            {rand_solution, new_fitness_value, new_key}
+          else
+            {current_solution, current_fitness, new_key}
+          end
+        end)
+  
+      # Check time only after the batch
+      if System.monotonic_time() > end_time do
+        %{rs | key: updated_key, solution: updated_solution, best_fitness: updated_fitness}
+      else
+        RandomSearch.run(%{rs | key: updated_key, solution: updated_solution, best_fitness: updated_fitness}, end_time)
+      end
+    end
+  end
+
+          
+    
+end
+
+```
+
+```elixir
+defmodule ParticleSwarmOptimization do
+  @moduledoc """
+  Particle Swarm Optimization (PSO) implemented with Elixir NX.
+
+  Each particle is a map containing:
+    • `position`     : Nx.Tensor.t() representing the current point.
+    • `velocity`     : Nx.Tensor.t(), updated each iteration.
+    • `fitness`      : float(), computed as problem.fun.(position).
+    • `best_position`: Nx.Tensor.t() of the particle's personal best.
+    • `best_fitness` : float() corresponding to its personal best.
+  
+  The swarm updates via:
+    new_velocity = w * velocity +
+                   c1 * r1 * (best_position - position) +
+                   c2 * r2 * (global_best.position - position)
+                   
+  new_position is obtained by adding the new_velocity to the current position.
+  """
+
+  @type particle :: %{
+          position: Nx.Tensor.t(),
+          velocity: Nx.Tensor.t(),
+          fitness: float(),
+          best_position: Nx.Tensor.t(),
+          best_fitness: float()
+        }
+
+  @type t :: %__MODULE__{
+          particles: list(particle()),
+          problem: Problem.t(),
+          hyperparams: Hyperparameters.t(),
+          key: any(),
+          w: float(),  # inertia weight
+          c1: float(), # cognitive coefficient
+          c2: float(),  # social coefficient
+          verbose: boolean(),
+          max_iterations: integer()
+        }
+
+  defstruct [:particles, :problem, :hyperparams, :key, :w, :c1, :c2, :verbose, :max_iterations]
+
+  @doc """
+  Initializes the PSO swarm.
+
+  * `problem` must be provided and is expected to have:
+      - `problem.d` : the dimensionality of the problem space.
+      - `problem.fun` : a function that computes fitness given a position.
+  * `hyperparams` must include at least `n` (the number of particles).
+  * `opts` can override:
+      - `:key`  => initial RNG key.
+      - `:w`    => inertia weight (default: 0.5).
+      - `:c1`   => cognitive coefficient (default: 1.5).
+      - `:c2`   => social coefficient (default: 1.5).
+
+  For simplicity, positions are initialized uniformly between -5 and 5;
+  velocities are initialized uniformly between -1 and 1.
+  """
+  @spec new(Problem.t(), Hyperparameters.t(), map()) :: t()
+  def new(problem, hyperparams, opts \\ %{}) do
+    if problem == nil do
+      raise ArgumentError, "Problem must be provided to initialize PSO."
+    end
+
+    key = Map.get(opts, :key, Nx.Random.key(42))
+
+    # Define initialization bounds.
+    lower_pos = -5
+    upper_pos = 5
+    lower_vel = -1
+    upper_vel = 1
+
+    {particles, final_key} =
+      Enum.map_reduce(1..hyperparams.n, key, fn _, current_key ->
+        {position, key1} =
+          Nx.Random.uniform(current_key, lower_pos, upper_pos, shape: {problem.d})
+
+        {velocity, key2} =
+          Nx.Random.uniform(key1, lower_vel, upper_vel, shape: {problem.d})
+
+        fitness = problem.fun.(position)
+
+        particle = %{
+          position: position,
+          velocity: velocity,
+          fitness: fitness,
+          best_position: position,
+          best_fitness: fitness,
+        }
+
+        {particle, key2}
+      end)
+
+    %__MODULE__{
+      problem: problem,
+      hyperparams: hyperparams,
+      key: final_key,
+      particles: particles,
+      w: Map.get(opts, :w, 0.5),
+      c1: Map.get(opts, :c1, 1.5),
+      c2: Map.get(opts, :c2, 1.5),
+      verbose: Map.get(opts, :verbose, false),
+      max_iterations: Map.get(opts, :max_iterations, 100),
+    }
+  end
+
+  @doc """
+  Returns the global best particle (the one with the lowest fitness).
+  Returns `nil` if the swarm is empty.
+  """
+  @spec best_particle(t()) :: particle() | nil
+  def best_particle(%__MODULE__{particles: []}), do: nil
+  def best_particle(%__MODULE__{particles: particles}) do
+    Enum.min_by(particles, & &1.best_fitness)
+  end
+
+  @doc """
+  Evolves the swarm by updating each particle's velocity and position.
+
+  The update rules are:
+    • new_velocity = w * velocity +
+                     c1 * r1 * (personal_best - position) +
+                     c2 * r2 * (global_best.position - position)
+    • new_position = position + new_velocity
+
+  After moving, the fitness is recomputed and the personal best is updated if an improvement is found.
+  """
+  @spec evolve(t()) :: t()
+  def evolve(pso) do
+    global_best = best_particle(pso)
+
+    {updated_particles, final_key} =
+      Enum.map_reduce(pso.particles, pso.key, fn particle, current_key ->
+        update_particle(particle, global_best, pso, current_key)
+      end)
+
+    %{pso | particles: updated_particles, key: final_key}
+  end
+
+  defp update_particle(particle, global_best, pso, key) do
+    # Generate random numbers for the cognitive and social components.
+    shape = Nx.shape(particle.position)
+    {r1, key1} = Nx.Random.uniform(key, 0.0, 1.0, shape: shape)
+    {r2, key2} = Nx.Random.uniform(key1, 0.0, 1.0, shape: shape)
+
+    # Compute the three terms:
+    inertia = Nx.multiply(pso.w, particle.velocity)
+    cognitive = Nx.multiply(pso.c1, Nx.multiply(r1, Nx.subtract(particle.best_position, particle.position)))
+    social = Nx.multiply(pso.c2, Nx.multiply(r2, Nx.subtract(global_best.position, particle.position)))
+
+    # Update velocity and position.
+    new_velocity = Nx.add(inertia, Nx.add(cognitive, social))
+    new_position = Nx.add(particle.position, new_velocity)
+    new_fitness = pso.problem.fun.(new_position)
+
+    # Update the personal best if improvement is found.
+    {new_best_position, new_best_fitness} =
+      if new_fitness < particle.best_fitness do
+        {new_position, new_fitness}
+      else
+        {particle.best_position, particle.best_fitness}
+      end
+
+    new_particle = %{
+      position: new_position,
+      velocity: new_velocity,
+      fitness: new_fitness,
+      best_position: new_best_position,
+      best_fitness: new_best_fitness
+    }
+
+    {new_particle, key2}
+  end
+
+  @spec iteration(t(), integer()) :: t()
+  def iteration(pso, i) do
+    if not pso.verbose do
+        IO.write("ITERATION : ")
+        IO.write(i)
+        IO.write(" curr best: ")
+        best = ParticleSwarmOptimization.best_particle(pso)
+        IO.write(best.fitness)
+        IO.write(" at ")
+        IO.inspect(best.position |> Nx.to_flat_list())
+    end
+    
+    case i < pso.max_iterations do
+      true -> 
+        pso
+        |> ParticleSwarmOptimization.evolve()
+        |> ParticleSwarmOptimization.iteration(i + 1)
+      false -> pso
+    end
+  end
+  
+  @spec run(t()) :: t()
+  def run(pso) do
+    iteration(pso, 0)
+  end
+end
+```
+
+```elixir
+defmodule GeneticAlgorithm do
+  @type individual :: %{
+          genome: Nx.Tensor.t(),
+          fitness: float() | nil
+        }
+
+  @type t :: %GeneticAlgorithm{
+          population: list(individual()),
+          problem: Problem.t(),
+          hyperparams: Hyperparameters.t(),
+          key: integer(),
+          selection_rate: float(),
+          crossover_rate: float(),
+          mutation_rate: float(),
+          max_iterations: integer(),
+          verbose: boolean()
+        }
+
+  defstruct [:population, :problem, :hyperparams, :key, :selection_rate, :crossover_rate, :mutation_rate, :max_iterations, :verbose]
+
+  @spec new(Problem.t(), Hyperparameters.t(), map()) :: t()
+  def new(problem, hyperparams, opts \\ %{}) do
+    if problem == nil do
+      raise ArgumentError, "Problem must be provided to initialize GeneticAlgorithm"
+    end
+
+    key = Map.get(opts, :key, Nx.Random.key(42))
+
+    {population, final_key} =
+      Enum.map_reduce(1..hyperparams.n, key, fn _, current_key ->
+        {genome, new_key} = Nx.Random.uniform(current_key, -5, 5, shape: {problem.d})
+        individual = %{genome: genome, fitness: problem.fun.(genome)}
+        {individual, new_key}
+      end)
+
+    %__MODULE__{
+      problem: problem,
+      hyperparams: hyperparams,
+      key: final_key,
+      population: population,
+      selection_rate: 0.7,
+      crossover_rate: 0.8,
+      mutation_rate: 0.02,
+      max_iterations: 100,
+      verbose: true
+    }
+    |> struct(opts)
+  end
+
+  @spec best_individual(t()) :: %{genome: Nx.Tensor.t(), fitness: float()} | nil
+  def best_individual(ga) do
+    Enum.min_by(ga.population, & &1.fitness)
+  end
+
+  @spec evolve(t()) :: t()
+  def evolve(ga) do
+    n = ga.hyperparams.n
+    selected_population = select(ga.population, ga.selection_rate)
+    {offspring, new_key} = crossover(selected_population, ga.crossover_rate, ga.key, n)
+    {mutated_offspring, final_key} = mutate(offspring, ga.mutation_rate, new_key)
+
+    new_population =
+      Enum.map(mutated_offspring, fn %{genome: genome} ->
+        %{genome: genome, fitness: ga.problem.fun.(genome)}
+      end)
+
+    %{ga | population: new_population, key: final_key}
+  end
+
+  defp select(population, rate) do
+    population
+    |> Enum.sort_by(& &1.fitness)
+    |> Enum.take(round(length(population) * rate))
+  end
+
+defp crossover(population, rate, key, n) do
+  num_pairs = div(n, 2)
+  population_size = length(population)
+
+  if population_size == 0 do
+    {[], key}
+  else
+    {indices, new_key} = generate_indices(key, num_pairs * 2, population_size)
+    
+    # Convert indices to integers and chunk into parent pairs
+    parent_indices = 
+      indices
+      |> Enum.map(&trunc/1)
+      |> Enum.chunk_every(2)
+
+    {offspring, final_key} =
+      Enum.map_reduce(parent_indices, new_key, fn [i1, i2], current_key ->
+        p1 = Enum.at(population, i1)
+        p2 = Enum.at(population, i2)
+
+        {crossover_decision, key1} = Nx.Random.uniform(current_key, 0.0, 1.0)
+
+        if crossover_decision < rate do
+          {alpha, key2} = Nx.Random.uniform(key1)
+          child1 = Nx.add(Nx.multiply(alpha, p1.genome), Nx.multiply(1.0 - alpha, p2.genome))
+          child2 = Nx.add(Nx.multiply(alpha, p2.genome), Nx.multiply(1.0 - alpha, p1.genome))
+          {[%{genome: child1}, %{genome: child2}], key2}
+        else
+          {[p1, p2], key1}
+        end
+      end)
+
+    {List.flatten(offspring), final_key}
+  end
+end
+
+  defp generate_indices(key, count, max_index) do
+    {random, new_key} = Nx.Random.uniform(key, 0, max_index, shape: {count})
+    {Nx.to_flat_list(random), new_key}
+  end
+
+  defp mutate(population, mutation_rate, key) do
+    Enum.map_reduce(population, key, fn individual, current_key ->
+      genome = individual.genome
+      shape = Nx.shape(genome)
+
+      {mutation, new_key} = 
+        Nx.Random.normal(current_key, 0.0, mutation_rate, shape: shape)
+
+      mutated_genome = Nx.add(genome, mutation)
+      {%{individual | genome: mutated_genome}, new_key}
+    end)
+  end
+
+  @spec iteration(t(), integer()) :: t()
+  def iteration(ga, i) do
+    if not ga.verbose do
+        IO.write("ITERATION : ")
+        IO.write(i)
+        IO.write(" curr best: ")
+        best = GeneticAlgorithm.best_individual(ga)
+        IO.write(best.fitness)
+        IO.write(" at ")
+        IO.inspect(best.genome |> Nx.to_flat_list())
+    end
+    
+    case i < ga.max_iterations do
+      true -> 
+        ga
+        |> GeneticAlgorithm.evolve()
+        |> GeneticAlgorithm.iteration(i + 1)
+      false -> ga
+    end
+  end
+  
+  @spec run(t()) :: t()
+  def run(ga) do
+    iteration(ga, 0)
+  end
+
+end
+```
+
+```elixir
+defmodule WhiteSharkOptimizer do
+  @moduledoc """
+  Implements the White Shark Optimization algorithm for solving optimization problems.
+  Based on
+  https://www.sciencedirect.com/science/article/pii/S0950705122001897
+  https://www.mathworks.com/matlabcentral/fileexchange/107365-white-shark-optimizer-wso
+  """
+  @type t :: %WhiteSharkOptimizer{
+          problem: Problem.t() | nil,
+          hyperparams: Hyperparameters.t | nil,
+          key: integer() | nil,
+          w: Nx.Tensor.t | nil,
+          v: Nx.Tensor.t | nil,
+          k: integer(),
+          max_iterations: integer(), #called K in the paper
+          p1: float() | nil,
+          p2: float() | nil,
+          wgbestk: Nx.Tensor.t() | nil,
+          best_g_fitness: float() | nil,
+          w_best: Nx.Tensor.t() | nil,
+          best_fitness: Nx.Tensor.t | nil,
+          fitness_results: Nx.Tensor.t | nil,
+          verbose: boolean(), 
+        }
+  
+  defstruct problem: nil,
+            hyperparams: nil,
+            key: nil,
+            w: nil,
+            v: nil,
+            k: 0,
+            max_iterations: 100,
+            p1: nil,
+            p2: nil,
+            wgbestk: nil,
+            best_g_fitness: :infinity,
+            w_best: nil,
+            best_fitness: nil,
+            fitness_results: nil,
+            verbose: true
+
+  
+  @spec compute_ps(t()) :: t()
+  defp compute_ps(wso) do
+    p_min = wso.hyperparams.p_min
+    p_max = wso.hyperparams.p_max
+    p1 = p_max + (p_max - p_min) * :math.exp(:math.pow(- (4 * wso.k / wso.max_iterations ), 2))
+    p2 = p_min + (p_max - p_min) * :math.exp(:math.pow(- (4 * wso.k / wso.max_iterations ), 2))
+    %{wso | p1: p1, p2: p2}
+  end
+  
+  @doc """
+  Initializes a new instance of the WhiteSharkOptimizer struct with the provided problem, hyperparameters, and optional configuration.
+  
+  ### Parameters:
+  - `problem`: A struct defining the optimization problem to be solved. It must include the following fields:
+    - `d`: Dimensionality of the problem.
+    - `l`: Lower bounds for the search space as an Nx.Tensor of shape `{d}`.
+    - `u`: Upper bounds for the search space as an Nx.Tensor of shape `{d}`.
+    - `fun`: A fitness function of the form `(Nx.Tensor.t() -> float())`, used to evaluate the quality of solutions.
+    - The dimensionality (`d`) must match the bounds (`l` and `u`).
+  - `hyperparams`: A struct specifying the algorithm's hyperparameters such as the population size (`n`), learning rate (`mu`), and others necessary for controlling the behavior of the optimizer.
+  - `opts`: A map of optional configuration values. These can include:
+    - `key`: Random key for generating initial population and randomness. Defaults to a key generated by `Nx.Random.key(0)` if not provided.
+    - `verbose`: If `false`, the best solution will be printed every iteration. Defaults to `true`.
+  
+  ### Raises:
+  - `ArgumentError`: Raised in the following cases:
+    - `problem` is `nil`, as the optimizer cannot operate without a defined problem.
+    - `problem` is missing required fields (`d`, `l`, `u`, or `fun`).
+    - The dimensions of the bounds (`l` and `u`) do not match the dimensionality (`d`).
+    - The `fun` field is not a valid function.
+  
+  ### Returns:
+  - A `WhiteSharkOptimizer` struct initialized with computed fields.
+  """
+  @spec new(Problem.t(), Hyperparameters.t(), map()) :: t()
+  def new(%{d: _, l: _, u: _, fun: _} = problem, hyperparams, opts \\ %{}) do
+    validate_problem(problem)
+
+    key = Map.get(opts, :key, Nx.Random.key(0))
+
+    {random_tensor, key} = Nx.Random.uniform(key, shape: {hyperparams.n, problem.d})
+    w_initial = random_tensor 
+          |> Nx.multiply(Nx.subtract(problem.u, problem.l))
+          |> Nx.add(problem.l)
+    computed_fields = %{
+      w: w_initial,
+      v: Nx.broadcast(0, {hyperparams.n, problem.d}),
+      key: key,
+      problem: problem,
+      hyperparams: hyperparams,
+      w_best: w_initial,
+      best_fitness: Nx.broadcast(Nx.Constants.infinity(), {hyperparams.n})
+    }
+    
+    %__MODULE__{}
+    |> struct(Map.merge(computed_fields, opts))
+    |> compute_ps()
+    
+  end
+    
+  defp validate_problem(%{d: d, l: l, u: u, fun: fun}) do
+    unless is_integer(d) and d > 0 do
+      raise ArgumentError, "`d` must be a positive integer"
+    end
+  
+    unless is_function(fun, 1) do
+      raise ArgumentError, "`fun` must be a valid function of the form `Nx.Tensor.t() -> float()`"
+    end
+  
+    unless Nx.axis_size(l, 0) == d and Nx.axis_size(u, 0) == d do
+      raise ArgumentError, "The dimensions of `l` and `u` must match `d` in the problem struct"
+    end
+  end
+
+  defp validate_problem(_) do
+    raise ArgumentError, "Problem struct must include fields `d`, `l`, `u`, and `fun`"
+  end
+      
+  @spec fitness_function(t()) :: t()
+  defp fitness_function(wso) do
+  
+    # Process each row and compute the fitness results
+    fitness_results = 
+      Enum.map(0..(wso.hyperparams.n - 1), fn i ->
+        wso.w
+        |> Nx.slice([i, 0], [1, Nx.axis_size(wso.w, 1)])
+        |> Nx.squeeze()
+        |> wso.problem.fun.()
+      end)
+    |> Nx.tensor()
+  
+    # Update the struct with computed fitness results
+    %{wso | fitness_results: fitness_results}
+  end
+
+  @spec find_wgbestk(t()) :: t()
+  defp find_wgbestk(wso) do
+    gbestk = Nx.argmin(wso.fitness_results)
+    gbestk_fitness_value = wso.fitness_results
+      |> Nx.slice([gbestk], [1]) 
+      |> Nx.reshape({})
+      |> Nx.to_number()
+    if gbestk_fitness_value < wso.best_g_fitness do
+      %{wso | wgbestk: Nx.slice(wso.w, [gbestk, 0], [1, Nx.axis_size(wso.w, 1)]), 
+      best_g_fitness: gbestk_fitness_value}
+    else
+      wso
+    end
+  end
+  
+  @spec find_wbest(t()) :: t()
+  defp find_wbest(wso) do
+    # Create a mask for rows where fitness_results < best_fitness
+    mask = Nx.less(wso.fitness_results, wso.best_fitness)
+  
+    # Expand the mask to align dimensions (add an axis to match {n, d})
+    mask_expanded = Nx.new_axis(mask, -1)  # Shape: {n} -> {n, 1}
+  
+    # Broadcast the mask to match the shape of w and w_best
+    mask_broadcasted = Nx.broadcast(mask_expanded, Nx.shape(wso.w))  # Shape: {n, 1} -> {n, d}
+  
+    # Perform conditional updates with Nx.select
+    updated_w_best = Nx.select(mask_broadcasted, wso.w, wso.w_best)
+    updated_best_fitness = Nx.select(mask, wso.fitness_results, wso.best_fitness)
+  
+    # Return the updated struct
+    %{wso |
+      w_best: updated_w_best,
+      best_fitness: updated_best_fitness}
+  end
+    
+  @spec movement_speed_towards_prey(t()) :: t()
+  defp movement_speed_towards_prey(wso) do 
+    # this version is in the paper but here we implement MATLAB code
+    # {c1, new_key} = Nx.Random.uniform(wso.key, shape: {wso.hyperparams.n, wso.problem.d})
+    # {c2, new_key} = Nx.Random.uniform(new_key, shape: {wso.hyperparams.n, wso.problem.d})
+    #first_part = wso.v
+    #  |> Nx.add(wso.p1 |> Nx.multiply(Nx.subtract(wso.wgbestk, wso.w)))
+    #  |> Nx.multiply(c1)
+    #second_part = wso.w_best 
+    #  |> Nx.subtract(wso.w) 
+    #  |> Nx.multiply(c2)  
+   
+    #%{wso | 
+    #  v: wso.hyperparams.mu |> Nx.multiply(Nx.add(first_part, second_part)),
+    #  key: new_key}
+
+    rmin = 1.0
+    rmax = 3.0
+    {rand, new_key} = Nx.Random.uniform(wso.key, 0.0, wso.hyperparams.n, shape: {wso.hyperparams.n}) 
+    nu = Nx.floor(rand) |> Nx.as_type(:s64) 
+    
+    {rr, new_key} = Nx.Random.uniform(new_key, rmin, rmax, shape: {wso.hyperparams.n})
+    #wr=abs(((2*rand()) - (1*rand()+rand()))/rr);
+    {r1, new_key} = Nx.Random.uniform(new_key, 0.0, 2.0, shape: {wso.hyperparams.n}) 
+    {r2, new_key} = Nx.Random.uniform(new_key, shape: {wso.hyperparams.n}) 
+    {r3, new_key} = Nx.Random.uniform(new_key, shape: {wso.hyperparams.n}) 
+
+    selected_wbest = Nx.take(wso.w_best, nu, axis: 0)
+    
+    wr = r1
+      |> Nx.subtract(Nx.add(r2, r3))
+      |> Nx.divide(rr)
+      |> Nx.abs()
+      
+
+    new_v = wso.hyperparams.mu
+      |> Nx.multiply(wso.v)
+      |> Nx.add(
+        wr
+        |> Nx.broadcast({wso.hyperparams.n, wso.problem.d}, axes: [0])
+        |> Nx.multiply(Nx.subtract(selected_wbest, wso.w))
+      )
+    %{wso | 
+          v: new_v,
+          key: new_key}
+  end
+
+  @spec movement_speed_towards_optimal_prey(t()) :: t()
+  defp movement_speed_towards_optimal_prey(wso) do
+    rand = wso.hyperparams.rand_fun.()
+    mv = 1 / (wso.hyperparams.a0 + 
+      :math.exp( (wso.max_iterations/2 - wso.k)/ wso.hyperparams.a1 ))
+
+    w_new = case rand < mv do
+      true -> 
+        a = wso.w
+          |> Nx.subtract(Nx.broadcast(wso.problem.u, {wso.hyperparams.n, wso.problem.d}))
+          |> Nx.sign()
+          |> Nx.greater(0)
+          |> Nx.select(1, 0)
+
+        b = wso.w
+          |> Nx.subtract(Nx.broadcast(wso.problem.l, {wso.hyperparams.n, wso.problem.d}))
+          |> Nx.sign()
+          |> Nx.less(0)
+          |> Nx.select(1, 0)
+
+        w0 = a # a XOR b = (a OR b) AND NOT (a AND B)
+          |> Nx.logical_or(b)
+          |> Nx.logical_and(Nx.logical_not(Nx.logical_and(a, b)))
+
+        
+        wso.w 
+          |> Nx.multiply(w0)
+          |> Nx.add(Nx.multiply(wso.problem.u, a)) 
+          |> Nx.add(Nx.multiply(wso.problem.l, b))
+      false -> wso.w |> Nx.add(Nx.multiply(wso.v, 1 / wso.hyperparams.f))
+    end
+
+    %{wso | w: Nx.min(Nx.max(w_new, wso.problem.l), wso.problem.u)}
+  end
+  
+  @spec movement_towards_the_best_white_shark(t()) :: t()
+  defp movement_towards_the_best_white_shark(wso) do
+    ss = abs(1 - :math.exp( -wso.hyperparams.a2 * wso.k / wso.max_iterations))
+    r3 = wso.hyperparams.rand_fun.()
+    
+    case r3 < ss do
+      true -> 
+        r1 = wso.hyperparams.rand_fun.()
+        r2 = wso.hyperparams.rand_fun.()
+        {rand, new_key} = Nx.Random.uniform(wso.key, shape: {wso.hyperparams.n, wso.problem.d})
+        d = Nx.abs(Nx.multiply(rand, Nx.subtract(wso.wgbestk, wso.w)))
+        
+        w_dash = wso.wgbestk 
+          |> Nx.add(Nx.multiply(r1, d) |> Nx.multiply(Nx.sign(r2 - 0.5)))
+        fish_school_behavior(%{wso | key: new_key}, w_dash)
+      false -> wso 
+    end
+    
+  end
+  
+  @spec fish_school_behavior(t(), Nx.Tensor.t | nil) :: t()
+  defp fish_school_behavior(wso, w_dash) do
+    {rand, new_key} = Nx.Random.uniform(wso.key, 0.0, 2.0, shape: {wso.hyperparams.n, wso.problem.d})
+    w_new = Nx.divide(Nx.add(wso.w, w_dash), rand)
+    %{wso | w: w_new, key: new_key}
+  end
+    
+  @spec iteration(t()) :: t()
+  defp iteration(wso) do
+    if not wso.verbose do
+      IO.write("Iteration ")
+      IO.write(inspect(wso.k))
+      IO.write(" curr_best: ")
+      IO.write(wso.best_g_fitness)
+      IO.write(" at ")
+      IO.inspect(wso.wgbestk |> Nx.to_flat_list())
+    end
+    
+    case wso.k < wso.max_iterations do
+      true -> 
+        wso
+        |> compute_ps()
+        |> movement_speed_towards_prey()
+        |> movement_speed_towards_optimal_prey()
+        |> movement_towards_the_best_white_shark()
+        |> fitness_function()
+        |> find_wgbestk()
+        |> find_wbest()
+        |> (fn map -> Map.update!(map, :k, &(&1 + 1)) end).()
+        |> iteration()
+      false -> wso |> find_wgbestk() |> find_wbest()
+    end
+  end
+  
+  @doc """
+  Executes the White Shark Optimization (WSO) algorithm on the given `WhiteSharkOptimizer` struct and returns the optimized results.
+  
+  ### Parameters:
+  - `wso`: A `WhiteSharkOptimizer` struct, already initialized with the problem, hyperparameters, and optional configuration values. The struct should also have initial positions (`w`), velocities (`v`), and other necessary fields set.
+  
+  ### Returns:
+  - An updated `WhiteSharkOptimizer` struct with:
+    - `wgbestk`: The global best position found by the algorithm.
+    - `best_g_fitness`: The fitness value of the global best solution.
+    - `w_best`: The personal best positions for each individual solution in the population.
+    - `best_fitness`: The fitness values corresponding to the personal best positions.
+  
+  """
+  @spec run(t()) :: t()
+  def run(wso) do
+    wso   
+    |> fitness_function()
+    |> find_wgbestk()
+    |> find_wbest()
+    |> iteration()
+    
+  end
+
+end
+```
+
+```elixir
+max_iterations = 10
+```
+
+```elixir
+true_solution = Nx.tensor([1 - :math.exp(0.5), -:math.pi(), 1 + :math.sqrt(2)])
+IO.write("TRUE SOLUTION: #{problem.fun.(true_solution)} at #{true_solution |> Nx.to_list() |> Enum.map(&Float.to_string/1) |> Enum.join(" ")}")
+
+IO.inspect(true_solution |> Nx.to_flat_list())
+
+start_time = System.monotonic_time()
+wso = WhiteSharkOptimizer.new(problem, hyperparams, %{verbose: false, key: Nx.Random.key(12), max_iterations: max_iterations})
+wso = WhiteSharkOptimizer.run(wso)
+end_time = System.monotonic_time()
+
+IO.puts("WSO Elapsed time: #{(end_time - start_time) / 10000} ms")
+IO.write("WSO SOLUTION: #{wso.best_g_fitness} at #{wso.wgbestk |> Nx.to_list() |> List.flatten() |> Enum.map(&Float.to_string/1) |> Enum.join(" ") }")
+
+
+
+
+```
+
+```elixir
+
+elapsed_time_in_microseconds = end_time - start_time
+rs = RandomSearch.new(problem, hyperparams, opts= %{key: Nx.Random.key(System.os_time())})
+rs_start_time = System.monotonic_time()
+rs = RandomSearch.run(rs, rs_start_time + elapsed_time_in_microseconds)
+rs_end_time = System.monotonic_time()
+
+IO.puts("RS Elapsed time: #{(rs_end_time - rs_start_time) / 10000} ms")
+IO.write("RS SOLUTION: #{rs.best_fitness} at #{rs.solution |> Nx.to_list() |> List.flatten() |> Enum.map(&Float.to_string/1) |> Enum.join(" ") }")
+
+```
+
+```elixir
+ga_start_time = System.monotonic_time()
+
+ga = GeneticAlgorithm.new(problem, hyperparams, opts= %{verbose: true, max_iterations: max_iterations, key: Nx.Random.key(System.os_time())})
+ga = GeneticAlgorithm.run(ga)
+
+ga_end_time = System.monotonic_time()
+
+IO.puts("GA Elapsed time: #{(ga_end_time - ga_start_time) / 10000} ms")
+best_individual = GeneticAlgorithm.best_individual(ga)
+IO.write("GA SOLUTION: #{best_individual.fitness} at #{best_individual.genome |> Nx.to_list() |> Enum.map(&Float.to_string/1) |> Enum.join(" ") }")
+
+
+```
+
+```elixir
+pso_start_time = System.monotonic_time()
+pso = ParticleSwarmOptimization.new(problem, hyperparams, opts= %{verbose: true, max_iterations: max_iterations, key: Nx.Random.key(System.os_time())})
+pso = ParticleSwarmOptimization.run(pso)
+pso_end_time = System.monotonic_time()
+IO.puts("PSO Elapsed time: #{(pso_end_time - pso_start_time) / 10000} ms")
+best_particle = ParticleSwarmOptimization.best_particle(pso)
+IO.write("PSO SOLUTION: #{best_particle.fitness} at #{best_particle.best_position |> Nx.to_list() |> Enum.map(&Float.to_string/1) |> Enum.join(" ") }")
+
+```
+
+```elixir
+problem10D = Problem.new(%{d: 10, name: "Rosenbrock10D", fun: &RosenbrockND.evaluate_nx/1, minimize: true})
+true_solution10D = Nx.tensor([:math.exp(0.5), -:math.pi(), :math.sqrt(2), :math.sqrt(3), 0, :math.sin(1), -:math.log(10), :math.exp(-1), -:math.exp(0.2), 3])
+tensor1 = Nx.tensor(1.0 |> List.duplicate(10), type: {:f, 32})
+true_solution10D = true_solution10D |> Nx.add(tensor1)
+problem10D.fun.(true_solution10D)
+```
+
+```elixir
+true_solution10D
+```
+
+```elixir
+max_iterations = 1000
+IO.puts("TRUE SOLUTION: #{problem10D.fun.(true_solution10D)} at #{true_solution10D |> Nx.to_list()  |> List.flatten() |> Enum.map(&Float.to_string/1) |> Enum.join(" ")}")
+
+start_time = System.monotonic_time()
+wso = WhiteSharkOptimizer.new(problem10D, hyperparams, %{verbose: true, key: Nx.Random.key(12), max_iterations: max_iterations})
+wso = WhiteSharkOptimizer.run(wso)
+end_time = System.monotonic_time()
+
+IO.puts("WSO Elapsed time: #{(end_time - start_time) / 10000} ms")
+IO.puts("WSO SOLUTION: #{wso.best_g_fitness} at #{wso.wgbestk |> Nx.to_list() |> List.flatten() |> Enum.map(&Float.to_string/1) |> Enum.join(" ") }")
+IO.puts("MAE: #{wso.wgbestk |> Nx.subtract(true_solution10D) |> Nx.abs() |> Nx.mean |> Nx.to_number()}")
+```
+
+```elixir
+max_iterations = 100
+
+ga_start_time = System.monotonic_time()
+ga = GeneticAlgorithm.new(problem10D, hyperparams, opts= %{verbose: true, max_iterations: max_iterations, key: Nx.Random.key(System.os_time())})
+ga = GeneticAlgorithm.run(ga)
+ga_end_time = System.monotonic_time()
+IO.puts("GA Elapsed time: #{(ga_end_time - ga_start_time) / 10000} ms")
+best_individual = GeneticAlgorithm.best_individual(ga)
+IO.puts("GA SOLUTION: #{best_individual.fitness} at #{best_individual.genome |> Nx.to_list() |> Enum.map(&Float.to_string/1) |> Enum.join(" ") }")
+IO.puts("MAE: #{best_individual.genome |> Nx.subtract(true_solution10D) |> Nx.abs() |> Nx.mean |> Nx.to_number()}")
+
+pso_start_time = System.monotonic_time()
+pso = ParticleSwarmOptimization.new(problem10D, hyperparams, opts= %{verbose: true, max_iterations: max_iterations, key: Nx.Random.key(System.os_time())})
+pso = ParticleSwarmOptimization.run(pso)
+pso_end_time = System.monotonic_time()
+IO.puts("PSO Elapsed time: #{(pso_end_time - pso_start_time) / 10000} ms")
+best_particle = ParticleSwarmOptimization.best_particle(pso)
+IO.puts("PSO SOLUTION: #{best_particle.fitness} at #{best_particle.best_position |> Nx.to_list() |> Enum.map(&Float.to_string/1) |> Enum.join(" ") }")
+IO.puts("MAE: #{best_particle.best_position |> Nx.subtract(true_solution10D) |> Nx.abs() |> Nx.mean |> Nx.to_number()}")
+
+```
+
+```elixir
+defmodule RastriginND do
+
+  def evaluate(u, a \\ 10) do
+    # Calculate the Rastrigin function for N dimensions
+    Enum.reduce(u, 0, fn x, acc ->
+      acc + x * x - a * :math.cos(2 * :math.pi * x) + a
+    end)
+  end
+
+  def evaluate_nx(u \\ Nx.tensor([1.0, -1.0, 2.0], type: {:f, 32}), a \\ 10.0) do
+    # Create a shifted solution to move the global optimum
+    true_solution10D = Nx.tensor([:math.exp(0.5), -:math.pi(), :math.sqrt(2), :math.sqrt(3), 0, :math.sin(1), -:math.log(10), :math.exp(-1), -:math.exp(0.2), 3])
+    shifted_u = Nx.subtract(u, true_solution10D)
+    
+    # Convert tensor to a flat list for evaluation
+    elements = Nx.to_flat_list(shifted_u)
+    evaluate(elements, a)
+  end
+end
+```
+
+```elixir
+problem10D = Problem.new(%{d: 10, name: "Rastrigin10D", fun: &RastriginND.evaluate_nx/1, minimize: true})
+true_solution10D = Nx.tensor([:math.exp(0.5), -:math.pi(), :math.sqrt(2), :math.sqrt(3), 0, :math.sin(1), -:math.log(10), :math.exp(-1), -:math.exp(0.2), 3])
+hyperparams = Hyperparameters.new(%{n: 100})
+problem10D.fun.(true_solution10D)
+
+```
+
+```elixir
+max_iterations = 100
+IO.puts("TRUE SOLUTION: #{problem10D.fun.(true_solution10D)} at #{true_solution10D |> Nx.to_list()  |> List.flatten() |> Enum.map(&Float.to_string/1) |> Enum.join(" ")}")
+
+start_time = System.monotonic_time()
+wso = WhiteSharkOptimizer.new(problem10D, hyperparams, %{verbose: true, key: Nx.Random.key(12), max_iterations: max_iterations})
+wso = WhiteSharkOptimizer.run(wso)
+end_time = System.monotonic_time()
+
+IO.puts("WSO Elapsed time: #{(end_time - start_time) / 10000} ms")
+IO.puts("WSO SOLUTION: #{wso.best_g_fitness} at #{wso.wgbestk |> Nx.to_list() |> List.flatten() |> Enum.map(&Float.to_string/1) |> Enum.join(" ") }")
+IO.puts("MAE: #{wso.wgbestk |> Nx.subtract(true_solution10D) |> Nx.abs() |> Nx.mean |> Nx.to_number()}")
+```
+
+```elixir
+max_iterations = 100
+
+ga_start_time = System.monotonic_time()
+ga = GeneticAlgorithm.new(problem10D, hyperparams, opts= %{verbose: true, max_iterations: max_iterations, key: Nx.Random.key(System.os_time())})
+ga = GeneticAlgorithm.run(ga)
+ga_end_time = System.monotonic_time()
+IO.puts("GA Elapsed time: #{(ga_end_time - ga_start_time) / 10000} ms")
+best_individual = GeneticAlgorithm.best_individual(ga)
+IO.puts("GA SOLUTION: #{best_individual.fitness} at #{best_individual.genome |> Nx.to_list() |> Enum.map(&Float.to_string/1) |> Enum.join(" ") }")
+IO.puts("MAE: #{best_individual.genome |> Nx.subtract(true_solution10D) |> Nx.abs() |> Nx.mean |> Nx.to_number()}")
+
+pso_start_time = System.monotonic_time()
+pso = ParticleSwarmOptimization.new(problem10D, hyperparams, opts= %{verbose: true, max_iterations: max_iterations, key: Nx.Random.key(System.os_time())})
+pso = ParticleSwarmOptimization.run(pso)
+pso_end_time = System.monotonic_time()
+IO.puts("PSO Elapsed time: #{(pso_end_time - pso_start_time) / 10000} ms")
+best_particle = ParticleSwarmOptimization.best_particle(pso)
+IO.puts("PSO SOLUTION: #{best_particle.fitness} at #{best_particle.best_position |> Nx.to_list() |> Enum.map(&Float.to_string/1) |> Enum.join(" ") }")
+IO.puts("MAE: #{best_particle.best_position |> Nx.subtract(true_solution10D) |> Nx.abs() |> Nx.mean |> Nx.to_number()}")
+
+```
