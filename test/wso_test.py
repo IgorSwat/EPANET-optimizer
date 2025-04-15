@@ -32,7 +32,7 @@ class RastriginProblem(Problem):
 # WSO test
 # --------
 
-if __name__ == "__main__":
+def wso_test() -> None:
     no_sharks = 100  # Population size
     itemax = 500      # Number of iterations
     dim = 10           # Dimension of the problem

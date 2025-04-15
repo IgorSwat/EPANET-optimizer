@@ -2,7 +2,7 @@ from epyt import epanet
 import time
 
 # Load a network.
-d = epanet('networks/example.inp')
+d = epanet('epanet/files/example.inp')
 
 # Set simulation time duration.
 hrs = 50
