@@ -14,3 +14,7 @@ WSO_matlab
 
 __pycache__
 **/__pycache__
+
+epanet/files/*_temp*
+
+*.csv

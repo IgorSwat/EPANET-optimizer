@@ -1,54 +1,50 @@
-from epyt import epanet
+import numpy as np
+import pandas as pd
 import time
 
-# Load a network.
-d = epanet('epanet/files/example.inp')
+from epyt import epanet
+from src.problem import EpanetProblem
+from src.wso import Optimizer
 
-# Set simulation time duration.
-hrs = 50
-d.setTimeSimulationDuration(hrs * 3600)
+def epanet_test(model_filepath: str) -> None:
+    # Step 1 - load network from file
+    network = epanet(model_filepath)
 
-# Hydraulic analysis using epanet2.exe binary file.
-start_1 = time.time()
-hyd_res_1 = d.getComputedTimeSeries_ENepanet()
-stop_1 = time.time()
-hyd_res_1.disp()
+    # Step 2 - set simulation time duration
+    time_hrs = 24                                           # One full day
+    network.setTimeSimulationDuration(time_hrs * 3600)      # Needs to be in seconds
 
-# Hydraulic analysis using epanet2.exe binary file.
-start_2 = time.time()
-hyd_res_2 = d.getComputedTimeSeries()
-stop_2 = time.time()
-hyd_res_2.disp()
+    # Step 3 - run a complete hydraulics simulation and obtain results
+    network.solveCompleteHydraulics()
+    results = network.getComputedTimeSeries()
 
-# Hydraulic analysis using the functions ENopenH, ENinit, ENrunH, ENgetnodevalue/&ENgetlinkvalue, ENnextH, ENcloseH.
-# (This function contains events)
-start_3 = time.time()
-hyd_res_3 = d.getComputedHydraulicTimeSeries()
-stop_3 = time.time()
-hyd_res_3.disp()
+    # Step 4 - save results into CSV files
+    pd.DataFrame(results.Pressure).to_csv("pressure_24h.csv")
+    pd.DataFrame(results.Flow).to_csv("flow_24h.csv")
 
-# Hydraulic analysis step-by-step using the functions ENopenH, ENinit, ENrunH, ENgetnodevalue/&ENgetlinkvalue,
-# ENnextH, ENcloseH. (This function contains events)
-etstep = 3600
-d.setTimeReportingStep(etstep)
-d.setTimeHydraulicStep(etstep)
-d.setTimeQualityStep(etstep)
-start_4 = time.time()
-d.openHydraulicAnalysis()
-d.initializeHydraulicAnalysis()
-tstep, P, T_H, D, H, F = 1, [], [], [], [], []
-while tstep > 0:
-    t = d.runHydraulicAnalysis()
-    P.append(d.getNodePressure())
-    D.append(d.getNodeActualDemand())
-    H.append(d.getNodeHydraulicHead())
-    F.append(d.getLinkFlows())
-    T_H.append(t)
-    tstep = d.nextHydraulicAnalysisStep()
-d.closeHydraulicAnalysis()
-stop_4 = time.time()
+    # Step 5 - close network model
+    network.unload()
 
-print(f'Pressure: {P}')
-print(f'Demand: {D}')
-print(f'Hydraulic Head {H}')
-print(f'Flow {F}')
+
+def epanet_wso_test(model_filepath: str) -> None:
+    network = epanet(model_filepath)
+
+    dim = network.getLinkPipeCount()
+    lb = np.full(shape=(dim), fill_value=4)
+    ub = np.full(shape=(dim), fill_value=20)
+
+    problem = EpanetProblem(dim, lb, ub, network, 24)
+
+    optimizer = Optimizer()
+    no_sharks = 50
+    steps = 100
+
+    diameters_best, loss_best = optimizer.optimize(problem, no_sharks=no_sharks, steps=steps)
+    print("Optimal fitness:", loss_best)
+    print("Optimal solution:", diameters_best, end="\n\n")
+
+    network.solveCompleteHydraulics()
+    results = network.getComputedTimeSeries()
+    pd.DataFrame(results.Pressure).to_csv("pressure_24h.csv")
+
+    network.unload()

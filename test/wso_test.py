@@ -25,7 +25,7 @@ class RastriginProblem(Problem):
 
     @override
     def evaluate(self, x):
-        return 10 * len(x) + np.sum(x**2 - 10 * np.cos(2 * np.pi * x))
+        return 10 * len(x) + np.sum((x-2)**2 - 10 * np.cos(2 * np.pi * (x-2)))
     
 
 # --------
