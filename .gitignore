@@ -8,3 +8,9 @@ EPANET/api/**
 !EPANET/api/.gitkeep
 
 *.docx
+**/*.docx
+
+WSO_matlab
+
+__pycache__
+**/__pycache__
