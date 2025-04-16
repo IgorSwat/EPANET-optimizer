@@ -10,25 +10,22 @@ Mix.install([
 ## Section
 
 ```elixir
-defmodule Rosenbrock3D do
+defmodule Rosenbrock2D do
 
-  def evaluate(x, y, z, a \\ 1, b \\ 100) do
+  def evaluate(x, y, a \\ 1, b \\ 100) do
     (a - x) * (a - x) +
-      b * (y - x * x) * (y - x * x) +
-      (a - y) * (a - y) +
-      b * (z - y * y) * (z - y * y)
+      b * (y - x * x) * (y - x * x)
   end
-  def evaluate_nx(u \\ Nx.tensor([1.0, 1.0, 1.0], type: {:f, 32}), a \\ 1.0, b \\ 100.0) do
-    # Split u into x, y, z components
-    [x, y, z] = Nx.to_flat_list(u)
-    
-    # Compute the Rosenbrock function for 3D
-    evaluate(x + :math.exp(0.5), y + :math.pi() + 1, z - :math.sqrt(2), a, b)
+
+  def evaluate_nx(u \\ Nx.tensor([1.0, 1.0], type: {:f, 32}), a \\ 1.0, b \\ 100.0) do
+    # Split u into x, y components
+    [x, y] = Nx.to_flat_list(u)
+
+    # Compute the Rosenbrock function for 2D
+    evaluate(x + :math.exp(0.5), y + :math.pi() + 1, a, b)
   end
-  
+
 end
-
-
 ```
 
 ```elixir
@@ -137,8 +134,8 @@ defmodule Problem do
     end
     
     computed_fields = %{
-      l: Nx.broadcast(-5, {d}),
-      u: Nx.broadcast(5, {d}),
+      l: Nx.broadcast(-10, {d}),
+      u: Nx.broadcast(10, {d}),
       fun: fun
 
     }
@@ -156,13 +153,13 @@ end
 
 ```elixir
 
-hyperparams = Hyperparameters.new(%{n: 10})
-problem = Problem.new(%{d: 3, name: "Rosenbrock3D", fun: &Rosenbrock3D.evaluate_nx/1, minimize: true})
+hyperparams = Hyperparameters.new(%{n: 100})
+problem = Problem.new(%{d: 2, name: "Rosenbrock2D", fun: &Rosenbrock2D.evaluate_nx/1, minimize: true})
 
 ```
 
 ```elixir
-Rosenbrock3D.evaluate_nx(problem.u)
+Rosenbrock2D.evaluate_nx(problem.u)
 ```
 
 ```elixir
@@ -601,11 +598,12 @@ end
 ```elixir
 defmodule WhiteSharkOptimizer do
   @moduledoc """
-  Implements the White Shark Optimization algorithm for solving optimization problems.
+  Implements the White Shark Optimization algorithm for solving optimization problems in Nx.
   Based on
   https://www.sciencedirect.com/science/article/pii/S0950705122001897
   https://www.mathworks.com/matlabcentral/fileexchange/107365-white-shark-optimizer-wso
   """
+  require Nx
   @type t :: %WhiteSharkOptimizer{
           problem: Problem.t() | nil,
           hyperparams: Hyperparameters.t | nil,
@@ -645,8 +643,8 @@ defmodule WhiteSharkOptimizer do
   defp compute_ps(wso) do
     p_min = wso.hyperparams.p_min
     p_max = wso.hyperparams.p_max
-    p1 = p_max + (p_max - p_min) * :math.exp(:math.pow(- (4 * wso.k / wso.max_iterations ), 2))
-    p2 = p_min + (p_max - p_min) * :math.exp(:math.pow(- (4 * wso.k / wso.max_iterations ), 2))
+    p1 = p_max + (p_max - p_min) * :math.exp(-:math.pow( 4 * wso.k / wso.max_iterations, 2))
+    p2 = p_min + (p_max - p_min) * :math.exp(-:math.pow( 4 * wso.k / wso.max_iterations, 2))
     %{wso | p1: p1, p2: p2}
   end
   
@@ -774,112 +772,144 @@ defmodule WhiteSharkOptimizer do
     
   @spec movement_speed_towards_prey(t()) :: t()
   defp movement_speed_towards_prey(wso) do 
-    # this version is in the paper but here we implement MATLAB code
-    # {c1, new_key} = Nx.Random.uniform(wso.key, shape: {wso.hyperparams.n, wso.problem.d})
-    # {c2, new_key} = Nx.Random.uniform(new_key, shape: {wso.hyperparams.n, wso.problem.d})
-    #first_part = wso.v
-    #  |> Nx.add(wso.p1 |> Nx.multiply(Nx.subtract(wso.wgbestk, wso.w)))
-    #  |> Nx.multiply(c1)
-    #second_part = wso.w_best 
-    #  |> Nx.subtract(wso.w) 
-    #  |> Nx.multiply(c2)  
-   
-    #%{wso | 
-    #  v: wso.hyperparams.mu |> Nx.multiply(Nx.add(first_part, second_part)),
-    #  key: new_key}
-
-    rmin = 1.0
-    rmax = 3.0
-    {rand, new_key} = Nx.Random.uniform(wso.key, 0.0, wso.hyperparams.n, shape: {wso.hyperparams.n}) 
-    nu = Nx.floor(rand) |> Nx.as_type(:s64) 
     
-    {rr, new_key} = Nx.Random.uniform(new_key, rmin, rmax, shape: {wso.hyperparams.n})
+     {c1, new_key} = Nx.Random.uniform(wso.key, shape: {wso.hyperparams.n, 1})
+     {c2, new_key} = Nx.Random.uniform(new_key, shape: {wso.hyperparams.n, 1})
+
+     {rand, new_key} = Nx.Random.uniform(new_key, 0.0, wso.hyperparams.n, shape: {wso.hyperparams.n}) 
+  
+     nu = Nx.floor(rand) |> Nx.as_type(:s64) 
+     selected_wbest = Nx.take(wso.w_best, nu, axis: 0)
+
+     new_v = Nx.multiply(wso.hyperparams.mu, (wso.v
+          |> Nx.add(wso.p1 
+            |> Nx.multiply(c1)
+            |> Nx.multiply(Nx.subtract(wso.w_best, wso.w)))
+          |> Nx.add(wso.p2
+            |> Nx.multiply(c2)
+            |> Nx.multiply(Nx.subtract(selected_wbest, wso.w)))
+        ))
+
+     %{wso | 
+      v: new_v,
+      key: new_key}
+
+    #rmin = 1.0
+    #rmax = 3.0
+    # {rand, new_key} = Nx.Random.uniform(wso.key, 0.0, wso.hyperparams.n, shape: {wso.hyperparams.n}) 
+    #nu = Nx.floor(rand) |> Nx.as_type(:s64) 
+    
+    # {rr, new_key} = Nx.Random.uniform(new_key, rmin, rmax, shape: {wso.hyperparams.n})
     #wr=abs(((2*rand()) - (1*rand()+rand()))/rr);
-    {r1, new_key} = Nx.Random.uniform(new_key, 0.0, 2.0, shape: {wso.hyperparams.n}) 
-    {r2, new_key} = Nx.Random.uniform(new_key, shape: {wso.hyperparams.n}) 
-    {r3, new_key} = Nx.Random.uniform(new_key, shape: {wso.hyperparams.n}) 
+    # {r1, new_key} = Nx.Random.uniform(new_key, 0.0, 2.0, shape: {wso.hyperparams.n}) 
+    # {r2, new_key} = Nx.Random.uniform(new_key, shape: {wso.hyperparams.n}) 
+    # {r3, new_key} = Nx.Random.uniform(new_key, shape: {wso.hyperparams.n}) 
 
-    selected_wbest = Nx.take(wso.w_best, nu, axis: 0)
+    #selected_wbest = Nx.take(wso.w_best, nu, axis: 0)
     
-    wr = r1
-      |> Nx.subtract(Nx.add(r2, r3))
-      |> Nx.divide(rr)
-      |> Nx.abs()
+    #wr = r1
+    #  |> Nx.subtract(Nx.add(r2, r3))
+    #  |> Nx.divide(rr)
+    #  |> Nx.abs()
       
 
-    new_v = wso.hyperparams.mu
-      |> Nx.multiply(wso.v)
-      |> Nx.add(
-        wr
-        |> Nx.broadcast({wso.hyperparams.n, wso.problem.d}, axes: [0])
-        |> Nx.multiply(Nx.subtract(selected_wbest, wso.w))
-      )
-    %{wso | 
-          v: new_v,
-          key: new_key}
+    #new_v = wso.hyperparams.mu
+    #  |> Nx.multiply(wso.v)
+    #  |> Nx.add(
+    #    wr
+    #    |> Nx.broadcast({wso.hyperparams.n, wso.problem.d}, axes: [0])
+    #    |> Nx.multiply(Nx.subtract(selected_wbest, wso.w))
+    #  )
+    #%{wso | 
+    #      v: new_v,
+    #      key: new_key}
   end
 
   @spec movement_speed_towards_optimal_prey(t()) :: t()
   defp movement_speed_towards_optimal_prey(wso) do
     rand = wso.hyperparams.rand_fun.()
     mv = 1 / (wso.hyperparams.a0 + 
-      :math.exp( (wso.max_iterations/2 - wso.k)/ wso.hyperparams.a1 ))
+      :math.exp( (wso.max_iterations/2.0 - wso.k)/ wso.hyperparams.a1 ))
 
-    w_new = case rand < mv do
+      w_new = case rand < mv do
       true -> 
         a = wso.w
           |> Nx.subtract(Nx.broadcast(wso.problem.u, {wso.hyperparams.n, wso.problem.d}))
-          |> Nx.sign()
           |> Nx.greater(0)
-          |> Nx.select(1, 0)
+          |> Nx.select(0, 1)
 
         b = wso.w
           |> Nx.subtract(Nx.broadcast(wso.problem.l, {wso.hyperparams.n, wso.problem.d}))
-          |> Nx.sign()
           |> Nx.less(0)
-          |> Nx.select(1, 0)
+          |> Nx.select(0, 1)
 
-        w0 = a # a XOR b = (a OR b) AND NOT (a AND B)
-          |> Nx.logical_or(b)
-          |> Nx.logical_and(Nx.logical_not(Nx.logical_and(a, b)))
-
+        w0 = Nx.logical_and(a, b) 
+        # NOT XOR (a, b) = AND (NOT a, NOT a) note that a and b cannot both be 1
         
         wso.w 
-          |> Nx.multiply(w0)
-          |> Nx.add(Nx.multiply(wso.problem.u, a)) 
-          |> Nx.add(Nx.multiply(wso.problem.l, b))
-      false -> wso.w |> Nx.add(Nx.multiply(wso.v, 1 / wso.hyperparams.f))
-    end
+           |> Nx.multiply(w0)
+           |> Nx.add(Nx.multiply(wso.problem.u, a))
+           |> Nx.add(Nx.multiply(wso.problem.l, b))
 
-    %{wso | w: Nx.min(Nx.max(w_new, wso.problem.l), wso.problem.u)}
+      false -> wso.w |> Nx.add(Nx.divide(wso.v, wso.hyperparams.f))
+    end
+    %{wso | w: w_new}
+    #%{wso | w: Nx.min(Nx.max(w_new, wso.problem.l), wso.problem.u)}
+  end
+
+  
+  @spec update_masked_indices_towards_the_best_white_shark(t(), Nx.Tensor.t(), integer()) :: t()
+  defp update_masked_indices_towards_the_best_white_shark(wso, indices, no_updates) do
+      {r1_masked, new_key} = Nx.Random.uniform(wso.key, shape: {no_updates, 1})
+      {r2_masked, new_key} = Nx.Random.uniform(new_key, shape: {no_updates, 1})
+
+      w_bestk_masked = Nx.take(wso.w_best, indices, axis: 0)
+      w_masked       = Nx.take(wso.w, indices, axis: 0)
+
+      {rand_masked, new_key} = Nx.Random.uniform(new_key, shape: {no_updates, wso.problem.d})
+
+      d_masked = Nx.abs(Nx.multiply(rand_masked, Nx.subtract(w_bestk_masked, w_masked)))
+
+      {rand, new_key} = Nx.Random.uniform(new_key, 0.0, 2.0, shape: {no_updates, wso.problem.d})
+
+      update_masked = w_bestk_masked
+        |> Nx.add(Nx.multiply(Nx.multiply(r1_masked, d_masked),
+                              Nx.sign(Nx.subtract(r2_masked, 0.5))))
+        |> Nx.add(w_masked)
+        |> Nx.divide(rand)
+        |> Nx.subtract(w_masked)
+
+      w_new = Nx.indexed_add(wso.w, Nx.new_axis(indices, -1), update_masked, axes: [0])
+
+      %{wso | key: new_key, w: w_new}
+  end
+
+  @spec indices_where_one(Nx.Tensor.t()) :: Nx.Tensor.t()
+  def indices_where_one(tensor) do
+    tensor
+    |> Nx.to_flat_list()
+    |> Enum.with_index()
+    |> Enum.filter(fn {value, _index} -> value == 1 end)
+    |> Enum.map(fn {_value, index} -> index end)
+    |> Nx.tensor()
   end
   
   @spec movement_towards_the_best_white_shark(t()) :: t()
   defp movement_towards_the_best_white_shark(wso) do
     ss = abs(1 - :math.exp( -wso.hyperparams.a2 * wso.k / wso.max_iterations))
-    r3 = wso.hyperparams.rand_fun.()
+
+    {r3, new_key} = Nx.Random.uniform(wso.key, shape: {wso.hyperparams.n})
+    mask = Nx.less(r3, Nx.tensor(ss))
     
-    case r3 < ss do
-      true -> 
-        r1 = wso.hyperparams.rand_fun.()
-        r2 = wso.hyperparams.rand_fun.()
-        {rand, new_key} = Nx.Random.uniform(wso.key, shape: {wso.hyperparams.n, wso.problem.d})
-        d = Nx.abs(Nx.multiply(rand, Nx.subtract(wso.wgbestk, wso.w)))
-        
-        w_dash = wso.wgbestk 
-          |> Nx.add(Nx.multiply(r1, d) |> Nx.multiply(Nx.sign(r2 - 0.5)))
-        fish_school_behavior(%{wso | key: new_key}, w_dash)
-      false -> wso 
+    if Nx.to_number(Nx.all(Nx.logical_not(mask))) == 1 do
+        wso
+    else
+      indices = Nx.greater(mask, Nx.tensor([0]))
+        |> indices_where_one()
+      no_updates = elem(Nx.shape(indices), 0)
+      update_masked_indices_towards_the_best_white_shark(%{wso | key: new_key}, indices, no_updates)
+      
     end
-    
-  end
-  
-  @spec fish_school_behavior(t(), Nx.Tensor.t | nil) :: t()
-  defp fish_school_behavior(wso, w_dash) do
-    {rand, new_key} = Nx.Random.uniform(wso.key, 0.0, 2.0, shape: {wso.hyperparams.n, wso.problem.d})
-    w_new = Nx.divide(Nx.add(wso.w, w_dash), rand)
-    %{wso | w: w_new, key: new_key}
-  end
     
   @spec iteration(t()) :: t()
   defp iteration(wso) do
@@ -936,11 +966,11 @@ end
 ```
 
 ```elixir
-max_iterations = 10
+max_iterations = 100
 ```
 
 ```elixir
-true_solution = Nx.tensor([1 - :math.exp(0.5), -:math.pi(), 1 + :math.sqrt(2)])
+true_solution = Nx.tensor([1 - :math.exp(0.5), -:math.pi()])
 IO.write("TRUE SOLUTION: #{problem.fun.(true_solution)} at #{true_solution |> Nx.to_list() |> Enum.map(&Float.to_string/1) |> Enum.join(" ")}")
 
 IO.inspect(true_solution |> Nx.to_flat_list())
@@ -1010,7 +1040,7 @@ true_solution10D
 ```
 
 ```elixir
-max_iterations = 1000
+max_iterations = 100
 IO.puts("TRUE SOLUTION: #{problem10D.fun.(true_solution10D)} at #{true_solution10D |> Nx.to_list()  |> List.flatten() |> Enum.map(&Float.to_string/1) |> Enum.join(" ")}")
 
 start_time = System.monotonic_time()
@@ -1027,7 +1057,7 @@ IO.puts("MAE: #{wso.wgbestk |> Nx.subtract(true_solution10D) |> Nx.abs() |> Nx.m
 max_iterations = 100
 
 ga_start_time = System.monotonic_time()
-ga = GeneticAlgorithm.new(problem10D, hyperparams, opts= %{verbose: true, max_iterations: max_iterations, key: Nx.Random.key(System.os_time())})
+ga = GeneticAlgorithm.new(problem10D, hyperparams, opts= %{verbose: false, max_iterations: max_iterations, key: Nx.Random.key(System.os_time())})
 ga = GeneticAlgorithm.run(ga)
 ga_end_time = System.monotonic_time()
 IO.puts("GA Elapsed time: #{(ga_end_time - ga_start_time) / 10000} ms")
@@ -1078,6 +1108,7 @@ problem10D.fun.(true_solution10D)
 
 ```elixir
 max_iterations = 100
+  
 IO.puts("TRUE SOLUTION: #{problem10D.fun.(true_solution10D)} at #{true_solution10D |> Nx.to_list()  |> List.flatten() |> Enum.map(&Float.to_string/1) |> Enum.join(" ")}")
 
 start_time = System.monotonic_time()
