@@ -89,7 +89,6 @@ class Optimizer:
 
             # Step 6 - evaluate and update best positions
             for i in range(no_sharks):
-                # TODO: Should we discard such an answer or clamp values into [lb, ub] range?
                 if np.all((W[i, :] >= problem.lb) & (W[i, :] <= problem.ub)):
                     fit = problem.evaluate(W[i, :])
                     if fit < fitness[i]:
