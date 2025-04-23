@@ -910,6 +910,7 @@ defmodule WhiteSharkOptimizer do
       update_masked_indices_towards_the_best_white_shark(%{wso | key: new_key}, indices, no_updates)
       
     end
+  end
     
   @spec iteration(t()) :: t()
   defp iteration(wso) do
