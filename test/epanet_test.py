@@ -3,8 +3,8 @@ import pandas as pd
 import time
 
 from epyt import epanet
-from src.problem import EpanetProblem
-from src.wso import Optimizer
+from optimizer.problem import EpanetProblem
+from optimizer.wso import Optimizer
 
 def epanet_test(model_filepath: str) -> None:
     # Step 1 - load network from file

@@ -2,7 +2,7 @@ import numpy as np
 import math
 import random
 
-from src.problem import Problem
+from .problem import Problem
 
 
 # ------------------------------------

@@ -18,3 +18,4 @@ __pycache__
 epanet/files/*_temp*
 
 *.csv
+*.log

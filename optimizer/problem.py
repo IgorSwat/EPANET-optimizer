@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 
 from abc import ABC, abstractmethod
 from epyt import epanet
@@ -29,31 +30,34 @@ class Problem(ABC):
 
 class EpanetProblem(Problem):
 
-    def __init__(self, dim, lb, ub, model: epanet, time_hrs: int):
+    def __init__(self, dim, lb, ub, model: epanet, time_hrs: int, measured_df: pd.DataFrame):
         super().__init__(dim, lb, ub)
 
         self.network = model
         self.time_hrs = time_hrs
+        self.measured_df = measured_df
     
     @override
     def evaluate(self, solution):
-        ''' NOTE: This is a temporary version 
-
-            In this version we use pipe diameter as parameters and pressure at last junction as objective fitness function
-        '''
-
-        # Update pipe diameters
+        # Apply new roughness coefficients
         pipe_indices = self.network.getLinkPipeIndex()
-        self.network.setLinkDiameter(pipe_indices, solution.astype(int))
+        self.network.setLinkRoughnessCoeff(pipe_indices, solution)
 
+        # Configure simulation duration
         self.network.setTimeSimulationDuration(self.time_hrs * 3600)
 
-        # Run complete simulation
+        # Run hydraulics
         self.network.solveCompleteHydraulics()
-        results = self.network.getComputedTimeSeries().Pressure
+        ts = self.network.getComputedTimeSeries()
 
-        # Some dumb heuristic
-        # - Maximizes mean pressure at 7th junction
-        mean = np.mean(results[:, -1])
+        # Build DataFrame of simulated pressures
+        node_ids = self.network.getNodeNameID()
+        sim_df = pd.DataFrame(ts.Pressure[:-1], columns=node_ids, index=self.measured_df.index)
 
-        return -mean
+        # Select only measured nodes and align
+        sim_sel = sim_df[self.measured_df.columns]
+
+        # Compute Mean Squared Error
+        diff = sim_sel.values - self.measured_df.values
+        mse = float(np.mean(diff ** 2))
+        return mse
