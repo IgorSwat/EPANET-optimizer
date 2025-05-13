@@ -2,5 +2,6 @@ paths:
   models:
     example: "epanet/files/example.inp"
     target: "epanet/files/network.inp"
+    output: "epanet/files/output.inp"
   data:
     pressure: "epanet/files/P.txt"

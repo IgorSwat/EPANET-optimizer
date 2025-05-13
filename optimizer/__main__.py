@@ -28,11 +28,14 @@ if __name__ == "__main__":
 
     # Step 3 - Determine roughness value bounds
     # - By default, we use min and max from already existing roughness values from the model as bounds
-    n_pipes = network.getLinkPipeCount()        # Number of pipes (= dimensionality)
+    pipe_indices = network.getLinkPipeIndex()
+    n_pipes = len(pipe_indices)        # Number of pipes (= dimensionality)
+    
+    roughness_values = np.array([network.getLinkRoughnessCoeff(i) for i in pipe_indices])
+    min_rough = max(1e-3, roughness_values.min() / 2)       # Increase bound by 2 times
+    max_rough = roughness_values.max() * 2
 
-    roughness_values = np.array([network.getLinkRoughnessCoeff(i) for i in range(n_pipes)])
-    min_rough = roughness_values.min()
-    max_rough = roughness_values.max()
+    print("\nInitial solution:", roughness_values, end="\n\n")
 
     # Create bounds vectors
     lb = np.full(shape=(n_pipes,), fill_value=min_rough)
@@ -56,18 +59,21 @@ if __name__ == "__main__":
     # print(df_pressure.index)
 
     # Step 5 - run WSO
-    no_sharks = 50
-    steps = 10
+    no_sharks = int(sys.argv[2])
+    steps = int(sys.argv[3])
 
     optimizer = Optimizer()
 
     # Run the optimization process
-    print("[ Optimization started ]")
-    roughness_best, loss_best = optimizer.optimize(problem, no_sharks=no_sharks, steps=steps)
+    print(f"[ Optimization started (no_sharks={no_sharks}, steps={steps})]")
+    roughness_best, loss_best = optimizer.optimize(problem, no_sharks=no_sharks, steps=steps, verbose=True)
     print("[ Optimization finished ]")
 
-    print("Optimal fitness:", loss_best)
-    print("Optimal solution:", roughness_best, end="\n\n")
+    print("\nOptimal fitness:", loss_best)
+    print("Optimal solution:", [f"{x:.3f}" for x in roughness_best], end="\n\n")
 
-    # Step 6 - close EPANET model
+    # Step 7 - save and quit EPANET model
+    network.setLinkRoughnessCoeff(pipe_indices, roughness_best)
+    network.saveInputFile(config["paths"]["models"]["output"])
+
     network.unload()
