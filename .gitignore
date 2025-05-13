@@ -6,6 +6,8 @@ build/**
 EPANET/EPANET_2.2/**
 EPANET/api/**
 !EPANET/api/.gitkeep
+!EPANET/files/P.txt
+!EPANET/files/Q.txt
 
 *.docx
 **/*.docx
@@ -19,3 +21,5 @@ epanet/files/*_temp*
 
 *.csv
 *.log
+*.txt
+*.bin

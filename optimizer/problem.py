@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import warnings
 
 from abc import ABC, abstractmethod
 from epyt import epanet
@@ -39,9 +40,19 @@ class EpanetProblem(Problem):
     
     @override
     def evaluate(self, solution):
-        # Apply new roughness coefficients
         pipe_indices = self.network.getLinkPipeIndex()
-        self.network.setLinkRoughnessCoeff(pipe_indices, solution)
+
+        # Apply new roughness coefficients
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always', UserWarning)
+
+            # to jest linia powodująca błąd 211
+            self.network.setLinkRoughnessCoeff(pipe_indices, solution)
+
+            # jeśli wśród warningów pojawił się Error 211
+            if any("Error 211" in str(wi.message) for wi in w):
+                print(solution)
+                return float('inf')
 
         # Configure simulation duration
         self.network.setTimeSimulationDuration(self.time_hrs * 3600)
