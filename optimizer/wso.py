@@ -28,7 +28,7 @@ class Optimizer:
     
 
     def optimize(self, problem: Problem, no_sharks: int = 10, steps: int = 10,
-                 verbose: bool = False) -> tuple[np.ndarray, float]:
+                 verbose: bool = False, log_coeff=0.1) -> tuple[np.ndarray, float]:
         ''' Performs WSO to find a solution that minimizes problem.evaluate() function values 
         
             Returns a pair of (best_solution, best_solution_eval)
@@ -48,7 +48,7 @@ class Optimizer:
         W_gbest = W[np.argmin(fitness)]     # 1D vector
 
         # Verbose setup
-        next_log = 0.1
+        next_log = log_coeff
 
         # Main WSO loop
         for k in range(1, steps + 1):
@@ -107,6 +107,6 @@ class Optimizer:
                 progress = k / steps
                 if progress >= next_log or k == steps:
                     print(f"Progress: {int(progress*100)}% | Best fitness: {fitness_min:.4f}")
-                    next_log += 0.1
+                    next_log += log_coeff
         
         return W_gbest, fitness_min
