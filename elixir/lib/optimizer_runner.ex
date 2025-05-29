@@ -1,51 +1,58 @@
 defmodule OptimizerRunner do
   require WhiteSharkOptimizer
   require Rosenbrock
+  require Rastrigin
+  require Levy
+  require Zakharov
+  require Schwefel
   require Hyperparameters
   require Problem
-  
-	def runs(x, n \\ 100, max_iterations \\ 100, d \\ 10)
+  require SharedMacro
 
-	def runs(0, _, _, _) do
+	def runs(x, max_iterations \\ 100)
+
+	def runs(0, _) do
 	  {:ok}
 	end
 
-	def runs(x, n, max_iterations, d) when x > 0 do
-	  OptimizerRunner.test(n, max_iterations, d)
-	  OptimizerRunner.runs(x - 1, n, max_iterations, d)
+	def runs(x, max_iterations) when x > 0 do
+	  OptimizerRunner.test(max_iterations)
+	  OptimizerRunner.runs(x - 1, max_iterations)
 	end
 
-  def test(n \\ 100, max_iterations \\ 100, d \\ 10) do
-    hyperparams = Hyperparameters.new(%{n: n})
+  def test(max_iterations \\ 1000) do
+    hyperparams = Hyperparameters.new()
     problem = Problem.new(%{
-      d: d,
+      d: WhiteSharkOptimizer.d(),
       name: "Rosenbrock",
-      fun: &Rosenbrock.evaluate_nx/1,
+      fun: &Rosenbrock.evaluate_nx_matrix_defn/1,
+      fun: &Rastrigin.evaluate_nx_matrix_defn/1,
+      fun: &Levy.evaluate_nx_matrix_defn/1,
+      fun: &Zakharov.evaluate_nx_matrix_defn/1,
+      fun: &Schwefel.evaluate_nx_matrix_defn/1,
       minimize: true
     })
 
-	# true_solution = Nx.tensor(List.duplicate(3.0, d))
-
-    # IO.puts("TRUE SOLUTION: #{format_solution(problem.fun.(true_solution))} at #{format_solution(true_solution)}")
-
-    start_time = System.monotonic_time()
     wso = WhiteSharkOptimizer.new(problem, hyperparams, %{verbose: true, key: Nx.Random.key(12), max_iterations: max_iterations})
+    start_time = System.monotonic_time()
     wso = WhiteSharkOptimizer.run(wso)
     end_time = System.monotonic_time()
+    start_time_ms = System.convert_time_unit(start_time, :native, :millisecond)
+    end_time_ms = System.convert_time_unit(end_time, :native, :millisecond)
 
-	IO.puts("#{(end_time - start_time) / 10000} #{format_solution(wso.best_g_fitness)}")
+	  IO.puts("#{(end_time_ms - start_time_ms)} #{format_solution(wso.best_g_fitness)}")
   end
-	
-  def run(n \\ 100, max_iterations \\ 100, d \\ 10) do
-    hyperparams = Hyperparameters.new(%{n: n})
+
+  def run(max_iterations \\ 100) do
+    hyperparams = Hyperparameters.new()
     problem = Problem.new(%{
-      d: d,
+      d: WhiteSharkOptimizer.d(),
       name: "Rosenbrock",
-      fun: &Rosenbrock.evaluate_nx/1,
+      fun: &Rosenbrock.evaluate_nx_matrix_defn/1,
       minimize: true
     })
 
-	true_solution = Nx.tensor(List.duplicate(3.0, d))
+	  true_solution = Nx.tensor(List.duplicate(3.0, WhiteSharkOptimizer.n()))
 
     IO.puts("TRUE SOLUTION: #{format_solution(problem.fun.(true_solution))} at #{format_solution(true_solution)}")
 
@@ -58,7 +65,7 @@ defmodule OptimizerRunner do
     IO.puts("WSO SOLUTION: #{wso.best_g_fitness} at #{format_solution(wso.wgbestk)}")
     IO.puts("MAE: #{calculate_mae(wso.wgbestk, true_solution)}")
   end
-  
+
   defp format_solution(solution) do
     if Nx.rank(solution) == 0 do
       solution
