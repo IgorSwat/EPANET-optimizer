@@ -1,5 +1,7 @@
 defmodule Hyperparameters do
-  @type t :: %Hyperparameters{
+  @derive {Nx.Container, containers: [:p_min, :p_max, :tau, :f_min, :f_max, :a0, :a1, :a2, :mu, :f]}
+  require Nx
+  @type t :: %__MODULE__{
           p_min: float(),
           p_max: float(),
           tau: float(),
@@ -8,12 +10,10 @@ defmodule Hyperparameters do
           a0: float(),
           a1: float(),
           a2: float(),
-          n: integer(),
           rand_fun: (() -> float()),
-          mu: float() | nil,
+          mu: Nx.tensor() | nil,
           f: float() | nil
         }
-
   defstruct p_min: 0.5,
             p_max: 1.5,
             tau: 4.125,
@@ -22,31 +22,27 @@ defmodule Hyperparameters do
             a0: 6.25,
             a1: 100,
             a2: 0.0005,
-            n: 100,
             rand_fun: &:rand.uniform/0,
             mu: nil,
             f: nil
-  
+
   defp compute_mu(tau) do
-    2 / (abs(2 - tau - :math.sqrt(tau * tau - 4 * tau)))
+    Nx.tensor(2 / abs(2 - tau - :math.sqrt(tau * tau - 4 * tau)))
   end
 
   defp compute_f(f_max, f_min) do
-    f_min + (f_max - f_min) / (f_max + f_min)
+    Nx.tensor(f_min + (f_max - f_min) / (f_max + f_min))
   end
-  
+
   @spec new(map()) :: t()
   def new(opts \\ %{}) do
     tau = Map.get(opts, :tau, %__MODULE__{}.tau)
     f_max = Map.get(opts, :f_max, %__MODULE__{}.f_max)
     f_min = Map.get(opts, :f_min, %__MODULE__{}.f_min)
 
-
     %__MODULE__{}
     |> struct(opts)
     |> Map.update!(:mu, fn _ -> compute_mu(tau) end)
     |> Map.update!(:f, fn _ -> compute_f(f_max, f_min) end)
   end
-
-
 end
