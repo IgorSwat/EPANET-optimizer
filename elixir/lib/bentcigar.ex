@@ -5,7 +5,7 @@ defmodule BentCigar do
   # Returns the dimension provided by a module attribute @d,
   # assuming it is set via SharedMacro.
   defn get_d, do: @d
-
+  def optimal_point(d), do: Nx.broadcast(0, {1, d})
   defn evaluate_nx_matrix_defn(u) do
     # Assume u is of shape {batch, dimensions}
     batch_size = Nx.axis_size(u, 0)

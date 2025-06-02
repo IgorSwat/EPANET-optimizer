@@ -3,6 +3,7 @@ defmodule Levy do
   use SharedMacro
 
   defn get_d, do: @d
+  def optimal_point(d), do: Nx.broadcast(1, {1, d})
   defn evaluate_nx_matrix_defn(u) do
       # u is an {n, d} matrix.
       # Transform u into w via the usual Levy transformation.

@@ -50,8 +50,8 @@ defmodule OptimizerRunner do
         name: "Schwefel",
         fun: &Schwefel.evaluate_nx_matrix_defn/1,
         d: d,
-        l: -500,
-        u: 500
+        l: -100,
+        u: 100
       },
       %{name: "BentCigar",
         fun: &BentCigar.evaluate_nx_matrix_defn/1,
@@ -114,8 +114,8 @@ defmodule OptimizerRunner do
       d: WhiteSharkOptimizer.d(),
       name: "Rosenbrock",
       fun: &Rosenbrock.evaluate_nx_matrix_defn/1,
-      l: Nx.broadcast(-1, {WhiteSharkOptimizer.d()}),
-      u: Nx.broadcast(1, {WhiteSharkOptimizer.d()})
+      l: Nx.broadcast(-100, {WhiteSharkOptimizer.d()}),
+      u: Nx.broadcast(100, {WhiteSharkOptimizer.d()})
     })
 
     start_time = System.monotonic_time()
@@ -125,7 +125,8 @@ defmodule OptimizerRunner do
 
 	  IO.inspect("WSO Elapsed time: #{(end_time - start_time) / 10000} ms")
     IO.inspect("WSO SOLUTION: #{format_solution(wso.best_g_fitness)} at #{format_solution(wso.wgbestk)}")
-    #IO.puts("MAE: #{calculate_mae(wso.wgbestk, true_solution)}")
+    IO.inspect("True solution:  #{format_solution(Problem.optimal_point(problem))}")
+
   end
 
   defp format_solution(solution) do
@@ -142,11 +143,4 @@ defmodule OptimizerRunner do
     end
   end
 
-  defp calculate_mae(predicted, true_solution) do
-    predicted
-    |> Nx.subtract(true_solution)
-    |> Nx.abs()
-    |> Nx.mean()
-    |> Nx.to_number()
-  end
 end
