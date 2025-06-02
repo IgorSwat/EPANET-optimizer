@@ -150,7 +150,7 @@ defmodule WhiteSharkOptimizer do
 
   @spec fitness_function(t()) :: t()
   defp fitness_function(wso) do
-    %{wso | fitness_results: wso.problem.fun.(wso.w)}
+    %{wso | fitness_results: wso.problem.fun.(wso.w, wso.problem.shift)}
   end
 
   @spec find_wgbestk(t()) :: t()
@@ -261,7 +261,7 @@ defmodule WhiteSharkOptimizer do
             |> Nx.multiply(c2)
             |> Nx.multiply(Nx.subtract(selected_wbest,w)))
         ))
-    new_v
+    Nx.clip(new_v, -1, 1)
   end
 
   @spec movement_speed_towards_optimal_prey(t()) :: t()
@@ -437,7 +437,7 @@ defmodule WhiteSharkOptimizer do
       IO.write("Iteration ")
       IO.write(inspect(wso.k))
       IO.write(" curr_best: ")
-      IO.write(wso.best_g_fitness)
+      IO.write(wso.best_g_fitness |> Nx.to_number())
       IO.write(" at ")
       IO.inspect(wso.wgbestk |> Nx.to_flat_list())
     end
