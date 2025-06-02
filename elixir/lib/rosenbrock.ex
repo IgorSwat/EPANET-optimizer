@@ -4,6 +4,7 @@ defmodule Rosenbrock do
   @b 100
   use SharedMacro
   defn get_d, do: @d
+  def optimal_point(d), do: Nx.broadcast(1, {1, d})
   defn evaluate_nx_matrix_defn(u) do
 
     x1 = Nx.slice(u, [0, 0], [Nx.axis_size(u, 0), get_d() - 1])
