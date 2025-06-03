@@ -95,7 +95,8 @@ defmodule OptimizerRunner do
         key: Nx.Random.key(12),
         max_iterations: max_iterations,
         l: Nx.broadcast(l, {d}),
-        u: Nx.broadcast(u, {d})
+        u: Nx.broadcast(u, {d}),
+        fully_vectorized: false
       })
 
     start_time = System.monotonic_time()
