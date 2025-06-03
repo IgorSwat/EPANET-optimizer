@@ -5,7 +5,7 @@ defmodule Schwefel do
   use SharedMacro
 
   defn get_d, do: @d
-  def optimal_point(d), do: Nx.broadcast(420.9687, {1, d})
+  def optimal_point(d), do: Nx.broadcast(420.9687462275036, {1, d})
   defn evaluate_nx_matrix_defn(u) do
     # For each value, compute x_i * sin(sqrt(abs(x_i)))
     term = Nx.multiply(u, Nx.sin(Nx.sqrt(Nx.abs(u))))

@@ -41,6 +41,7 @@ defmodule WhiteSharkOptimizer do
           best_fitness: Nx.Tensor.t | nil,
           fitness_results: Nx.Tensor.t | nil,
           verbose: boolean(),
+          fully_vectorized: boolean()
         }
 
   defstruct problem: nil,
@@ -57,7 +58,8 @@ defmodule WhiteSharkOptimizer do
             w_best: nil,
             best_fitness: nil,
             fitness_results: nil,
-            verbose: true
+            verbose: true,
+            fully_vectorized: false
 
 
   @spec compute_ps(t()) :: t()
@@ -261,7 +263,7 @@ defmodule WhiteSharkOptimizer do
             |> Nx.multiply(c2)
             |> Nx.multiply(Nx.subtract(selected_wbest,w)))
         ))
-    Nx.clip(new_v, -1, 1)
+    Nx.clip(new_v, -100, 100)
   end
 
   @spec movement_speed_towards_optimal_prey(t()) :: t()
@@ -441,15 +443,19 @@ defmodule WhiteSharkOptimizer do
       IO.write(" at ")
       IO.inspect(wso.wgbestk |> Nx.to_flat_list())
     end
-
+    movement_towards_the_best_white_shark_fun =
+    if wso.fully_vectorized do
+      &movement_towards_the_best_white_shark_nx/1
+    else
+      &movement_towards_the_best_white_shark/1
+    end
     case wso.k < wso.max_iterations do
       true ->
         wso
         |> compute_ps()
         |> movement_speed_towards_prey()
         |> movement_speed_towards_optimal_prey()
-        |> movement_towards_the_best_white_shark()
-        #|> movement_towards_the_best_white_shark_nx()
+        |> movement_towards_the_best_white_shark_fun.()
         |> fitness_function()
         |> find_wgbestk()
         |> find_wbest()
