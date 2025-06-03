@@ -14,7 +14,7 @@ defmodule OptimizerRunner do
   Runs each optimization function in a series of tests using custom parameters for
   dimension (`d`) and bounds (`l` and `u`).
   """
-  def run_all(iterations, max_iterations \\ 1000) when iterations > 0 do
+  def run_all(iterations, max_iterations \\ 1000, vectorized \\ false) when iterations > 0 do
     # A list of function configurations. You can customize d, l, and u for each function.
     d = WhiteSharkOptimizer.d()
     functions = [
@@ -62,23 +62,23 @@ defmodule OptimizerRunner do
     ]
 
     Enum.each(functions, fn func_config ->
-      run_function(iterations, max_iterations, func_config)
+      run_function(iterations, max_iterations, func_config, vectorized)
     end)
   end
 
   # Recursively runs the test for a given function configuration.
-  defp run_function(0, _max_iterations, _func_config), do: :ok
+  defp run_function(0, _max_iterations, _func_config, _), do: :ok
 
-  defp run_function(n, max_iterations, %{name: name, fun: fun, d: d, l: l, u: u} = config) when n > 0 do
-    test(max_iterations, name, fun, d, l, u)
-    run_function(n - 1, max_iterations, config)
+  defp run_function(n, max_iterations, %{name: name, fun: fun, d: d, l: l, u: u} = config, vectorized) when n > 0 do
+    test(max_iterations, name, fun, d, l, u, vectorized)
+    run_function(n - 1, max_iterations, config, vectorized)
   end
 
   @doc """
   Sets up the optimization problem with the provided dimension and bounds.
   Then it runs the optimizer and prints the result.
   """
-  def test(max_iterations \\ 1000, name, fun, d, l, u) do
+  def test(max_iterations \\ 1000, name, fun, d, l, u, vectorized) do
     hyperparams = Hyperparameters.new()
 
     # Build the problem using the given dimension d.
@@ -96,7 +96,7 @@ defmodule OptimizerRunner do
         max_iterations: max_iterations,
         l: Nx.broadcast(l, {d}),
         u: Nx.broadcast(u, {d}),
-        fully_vectorized: false
+        fully_vectorized: vectorized
       })
 
     start_time = System.monotonic_time()
@@ -106,7 +106,7 @@ defmodule OptimizerRunner do
     start_time_ms = System.convert_time_unit(start_time, :native, :millisecond)
     end_time_ms = System.convert_time_unit(end_time, :native, :millisecond)
 
-    IO.puts("NX #{max_iterations} #{WhiteSharkOptimizer.n()} #{problem.d} #{problem.name} #{(end_time_ms - start_time_ms)} #{format_solution(wso.best_g_fitness)}")
+    IO.puts("NX #{max_iterations} #{WhiteSharkOptimizer.n()} #{problem.d} #{vectorized} #{problem.name} #{(end_time_ms - start_time_ms)} #{format_solution(wso.best_g_fitness)}")
   end
 
   def run(max_iterations \\ 100) do
