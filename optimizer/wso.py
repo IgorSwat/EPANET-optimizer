@@ -1,8 +1,47 @@
+from .problem import Problem
+
+from concurrent.futures import ProcessPoolExecutor, as_completed
+
 import numpy as np
 import math
 import random
+import os
+import shutil
 
-from .problem import Problem
+
+# ----------------------------------
+# Helper functions - worker handling
+# ----------------------------------
+
+_worker = None
+_worker_dir = None
+
+def evaluate_with_local_worker(solution, model_path, time_hrs, measured_df, dim, lb, ub):
+    global _worker, _worker_dir
+
+    print("Hello worker!")
+
+    if _worker is None:
+        # Use Process ID as an unique identifier
+        pid = os.getpid()
+        base_dir = os.path.dirname(model_path)
+        _worker_dir = os.path.join(base_dir, f"worker_{pid}")
+        
+        os.makedirs(_worker_dir, exist_ok=True)
+        
+        worker_model_path = os.path.join(_worker_dir, os.path.basename(model_path))
+        shutil.copy(model_path, worker_model_path)
+        
+        from .multithreading import EpanetWorker
+
+        _worker = EpanetWorker(worker_model_path, time_hrs, measured_df, dim, lb, ub, work_dir=_worker_dir)
+
+    result = _worker(solution)
+    
+    # Remove temporary directory
+    # shutil.rmtree(_worker_dir)
+
+    return result
 
 
 # ------------------------------------
@@ -14,7 +53,7 @@ from .problem import Problem
 # - We assume that parameters are integers / floats in form of numpy array
 class Optimizer:
 
-    def __init__(self):
+    def __init__(self, no_workers: int = 4):
         # Initialize hyperparameters - according to WSO paper
         self.p_min = 0.5
         self.p_max = 1.5
@@ -25,6 +64,9 @@ class Optimizer:
         self.a0 = 6.25
         self.a1 = 100.0
         self.a2 = 0.0005
+
+        # Other optimization parameters
+        self.no_workers = no_workers
     
 
     def optimize(self, problem: Problem, no_sharks: int = 10, steps: int = 10,
@@ -51,62 +93,84 @@ class Optimizer:
         next_log = 0.1
 
         # Main WSO loop
-        for k in range(1, steps + 1):
+        # - To avoid GIL problem, we use ProcessPoolExecutor instead of ThreadPoolExecutor
+        with ProcessPoolExecutor(max_workers=self.no_workers) as executor:
+            for k in range(1, steps + 1):
 
-            # Calculate adaptive parameters
-            p1 = self.p_max + (self.p_max - self.p_min) * np.exp(-(4 * k / steps)**2)
-            p2 = self.p_min + (self.p_max - self.p_min) * np.exp(-(4 * k / steps)**2)
-            mv = 1 / (self.a0 + np.exp((steps / 2.0 - k) / self.a1))
-            s_s = abs(1 - np.exp(-self.a2 * k / steps))
+                # Calculate adaptive parameters
+                p1 = self.p_max + (self.p_max - self.p_min) * np.exp(-(4 * k / steps)**2)
+                p2 = self.p_min + (self.p_max - self.p_min) * np.exp(-(4 * k / steps)**2)
+                mv = 1 / (self.a0 + np.exp((steps / 2.0 - k) / self.a1))
+                s_s = abs(1 - np.exp(-self.a2 * k / steps))
 
-            # Step 3 - update shark velocities
-            # - NOTE: Can be additionally vectorized
-            nu = np.random.randint(0, no_sharks, no_sharks)
-            for i in range(no_sharks):
-                c1 = random.random()
-                c2 = random.random()
-                v[i, :] = self.mu * (v[i, :] + p1 * c1 * (W_gbest - W[i, :]) + p2 * c2 * (W_best[nu[i], :] - W[i, :]))
-            
-            # Step 4 - update positions with wavy motion or random allocation
-            f = self.f_min + (self.f_max - self.f_min) / (self.f_max + self.f_min)
-            for i in range(no_sharks):
-                a = W[i, :] > problem.ub
-                b = W[i, :] < problem.lb
-                w0 = np.logical_xor(a, b)
-                if random.random() < mv:
-                    W[i][w0] = problem.ub[w0] * a[w0] + problem.lb[w0] * b[w0]
-                else:
-                    W[i, :] += v[i, :] / f
-
-            # Step 5 - school movement update
-            for i in range(no_sharks):
-                # TODO: Is this thing even correct?
-                if random.random() <= s_s:
-                    D = np.abs(np.random.rand() * (W_gbest - W[i, :]))  
-                    if i == 0:
-                        sgn = np.sign(np.random.rand(problem.dim) - 0.5)
-                        W[i, :] = W_gbest + np.random.rand(problem.dim) * D * sgn
+                # Step 3 - update shark velocities
+                # - NOTE: Can be additionally vectorized
+                nu = np.random.randint(0, no_sharks, no_sharks)
+                for i in range(no_sharks):
+                    c1 = random.random()
+                    c2 = random.random()
+                    v[i, :] = self.mu * (v[i, :] + p1 * c1 * (W_gbest - W[i, :]) + p2 * c2 * (W_best[nu[i], :] - W[i, :]))
+                
+                # Step 4 - update positions with wavy motion or random allocation
+                f = self.f_min + (self.f_max - self.f_min) / (self.f_max + self.f_min)
+                for i in range(no_sharks):
+                    a = W[i, :] > problem.ub
+                    b = W[i, :] < problem.lb
+                    w0 = np.logical_xor(a, b)
+                    if random.random() < mv:
+                        W[i][w0] = problem.ub[w0] * a[w0] + problem.lb[w0] * b[w0]
                     else:
-                        sgn = np.sign(np.random.rand(problem.dim) - 0.5)
-                        tmp = W_gbest + np.random.rand(problem.dim) * D * sgn
-                        W[i, :] = (W[i, :] + tmp) / (2 * random.random())
+                        W[i, :] += v[i, :] / f
 
-            # Step 6 - evaluate and update best positions
-            for i in range(no_sharks):
-                if np.all((W[i, :] >= problem.lb) & (W[i, :] <= problem.ub)):
-                    fit = problem.evaluate(W[i, :])
-                    if fit < fitness[i]:
-                        W_best[i, :] = W[i, :]
-                        fitness[i] = fit
-                    if fitness[i] < fitness_min:
-                        fitness_min = fitness[i]
-                        W_gbest = W_best[i].copy()
-            
-            # Verbose logging
-            if verbose:
-                progress = k / steps
-                if progress >= next_log or k == steps:
-                    print(f"Progress: {int(progress*100)}% | Best fitness: {fitness_min:.4f}")
-                    next_log += 0.1
+                # Step 5 - school movement update
+                for i in range(no_sharks):
+                    # TODO: Is this thing even correct?
+                    if random.random() <= s_s:
+                        D = np.abs(np.random.rand() * (W_gbest - W[i, :]))  
+                        if i == 0:
+                            sgn = np.sign(np.random.rand(problem.dim) - 0.5)
+                            W[i, :] = W_gbest + np.random.rand(problem.dim) * D * sgn
+                        else:
+                            sgn = np.sign(np.random.rand(problem.dim) - 0.5)
+                            tmp = W_gbest + np.random.rand(problem.dim) * D * sgn
+                            W[i, :] = (W[i, :] + tmp) / (2 * random.random())
+
+                # Step 6 - return the sharks to the original solution space
+                W = np.clip(W, problem.lb, problem.ub)
+
+                # Step 7 - evaluate and update best positions
+                # - Multithreading enabled
+                future_to_shark = {
+                    executor.submit(
+                        evaluate_with_local_worker,
+                        W[i, :],
+                        problem.model_filepath,
+                        problem.time_hrs,
+                        problem.measured_df,
+                        problem.dim,
+                        problem.lb,
+                        problem.ub
+                    ): i for i in range(no_sharks)
+                }
+
+                for future in as_completed(future_to_shark):
+                    i = future_to_shark[future]
+                    try:
+                        fit = future.result()
+                        if fit < fitness[i]:
+                            W_best[i, :] = W[i, :]
+                            fitness[i] = fit
+                        if fitness[i] < fitness_min:
+                            fitness_min = fitness[i]
+                            W_gbest = W_best[i].copy()
+                    except Exception as exc:
+                        print(f'Exception generated by shark {i}: {exc}')
+                
+                # Verbose logging
+                if verbose:
+                    progress = k / steps
+                    if progress >= next_log or k == steps:
+                        print(f"Progress: {int(progress*100)}% | Best fitness: {fitness_min:.4f}")
+                        next_log += 0.1
         
         return W_gbest, fitness_min

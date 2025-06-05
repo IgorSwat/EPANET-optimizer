@@ -31,9 +31,10 @@ class Problem(ABC):
 
 class EpanetProblem(Problem):
 
-    def __init__(self, dim, lb, ub, model: epanet, time_hrs: int, measured_df: pd.DataFrame):
+    def __init__(self, dim, lb, ub, model: epanet, model_filepath: str, time_hrs: int, measured_df: pd.DataFrame):
         super().__init__(dim, lb, ub)
 
+        self.model_filepath = model_filepath
         self.network = model
         self.time_hrs = time_hrs
         self.measured_df = measured_df
