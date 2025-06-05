@@ -51,6 +51,7 @@ if __name__ == "__main__":
     problem = EpanetProblem(dim=n_pipes,
                             lb=lb, ub=ub,
                             model=network,
+                            model_filepath=model_filepath,
                             time_hrs=24,
                             measured_df=df_pressure)
 
@@ -59,8 +60,8 @@ if __name__ == "__main__":
     # print(df_pressure.index)
 
     # Step 5 - run WSO
-    no_sharks = int(sys.argv[2])
-    steps = int(sys.argv[3])
+    no_sharks = int(sys.argv[1])
+    steps = int(sys.argv[2])
 
     optimizer = Optimizer()
 

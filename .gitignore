@@ -23,3 +23,5 @@ epanet/files/*_temp*
 *.log
 *.txt
 *.bin
+
+epanet/files/worker*
