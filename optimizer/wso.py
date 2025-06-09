@@ -8,34 +8,6 @@ import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
 
 
-# ----------------------------------
-# Helper functions - worker handling
-# ----------------------------------
-
-_worker = None
-_worker_dir = None
-
-def evaluate_with_local_worker(solution, model_path, time_hrs, measured_df, dim, lb, ub):
-    global _worker, _worker_dir
-
-    if _worker is None:
-        import shutil
-        from .worker import EpanetWorker
-
-        # Use Process ID as an unique identifier
-        pid = os.getpid()
-        base_dir = os.getcwd()
-        _worker_dir = os.path.join(base_dir, f"tmp/worker_{pid}")
-        
-        os.makedirs(_worker_dir, exist_ok=True)
-
-        _worker = EpanetWorker(_worker_dir, "../../" + model_path, time_hrs, measured_df, dim, lb, ub)
-
-    result = _worker(solution)
-
-    return result
-
-
 # ------------------------------------
 # White Shark Optimizer implementation
 # ------------------------------------
@@ -131,6 +103,8 @@ class Optimizer:
 
                 # Step 7 - evaluate and update best positions
                 # - Multithreading enabled
+                from .worker import evaluate_with_local_worker
+
                 future_to_shark = {
                     executor.submit(
                         evaluate_with_local_worker,
