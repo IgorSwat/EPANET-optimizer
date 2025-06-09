@@ -51,7 +51,6 @@ if __name__ == "__main__":
     problem = EpanetProblem(dim=n_pipes,
                             lb=lb, ub=ub,
                             model=network,
-                            model_filepath=model_filepath,
                             time_hrs=24,
                             measured_df=df_pressure)
 
