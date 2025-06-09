@@ -1,12 +1,11 @@
 from .problem import Problem
 
-from concurrent.futures import ProcessPoolExecutor, as_completed
-
 import numpy as np
 import math
 import random
 import os
-import shutil
+
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
 
 # ----------------------------------
@@ -19,27 +18,20 @@ _worker_dir = None
 def evaluate_with_local_worker(solution, model_path, time_hrs, measured_df, dim, lb, ub):
     global _worker, _worker_dir
 
-    print("Hello worker!")
-
     if _worker is None:
+        import shutil
+        from .worker import EpanetWorker
+
         # Use Process ID as an unique identifier
         pid = os.getpid()
-        base_dir = os.path.dirname(model_path)
-        _worker_dir = os.path.join(base_dir, f"worker_{pid}")
+        base_dir = os.getcwd()
+        _worker_dir = os.path.join(base_dir, f"tmp/worker_{pid}")
         
         os.makedirs(_worker_dir, exist_ok=True)
-        
-        worker_model_path = os.path.join(_worker_dir, os.path.basename(model_path))
-        shutil.copy(model_path, worker_model_path)
-        
-        from .multithreading import EpanetWorker
 
-        _worker = EpanetWorker(worker_model_path, time_hrs, measured_df, dim, lb, ub, work_dir=_worker_dir)
+        _worker = EpanetWorker(_worker_dir, "../../" + model_path, time_hrs, measured_df, dim, lb, ub)
 
     result = _worker(solution)
-    
-    # Remove temporary directory
-    # shutil.rmtree(_worker_dir)
 
     return result
 
@@ -53,7 +45,7 @@ def evaluate_with_local_worker(solution, model_path, time_hrs, measured_df, dim,
 # - We assume that parameters are integers / floats in form of numpy array
 class Optimizer:
 
-    def __init__(self, no_workers: int = 4):
+    def __init__(self, model_filepath: str, no_workers: int = 4):
         # Initialize hyperparameters - according to WSO paper
         self.p_min = 0.5
         self.p_max = 1.5
@@ -66,6 +58,7 @@ class Optimizer:
         self.a2 = 0.0005
 
         # Other optimization parameters
+        self.model_filepath = model_filepath
         self.no_workers = no_workers
     
 
@@ -93,10 +86,8 @@ class Optimizer:
         next_log = 0.1
 
         # Main WSO loop
-        # - To avoid GIL problem, we use ProcessPoolExecutor instead of ThreadPoolExecutor
         with ProcessPoolExecutor(max_workers=self.no_workers) as executor:
             for k in range(1, steps + 1):
-
                 # Calculate adaptive parameters
                 p1 = self.p_max + (self.p_max - self.p_min) * np.exp(-(4 * k / steps)**2)
                 p2 = self.p_min + (self.p_max - self.p_min) * np.exp(-(4 * k / steps)**2)
@@ -144,7 +135,7 @@ class Optimizer:
                     executor.submit(
                         evaluate_with_local_worker,
                         W[i, :],
-                        problem.model_filepath,
+                        self.model_filepath,
                         problem.time_hrs,
                         problem.measured_df,
                         problem.dim,

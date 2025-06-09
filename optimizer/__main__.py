@@ -63,7 +63,7 @@ if __name__ == "__main__":
     no_sharks = int(sys.argv[1])
     steps = int(sys.argv[2])
 
-    optimizer = Optimizer()
+    optimizer = Optimizer(model_filepath)
 
     # Run the optimization process
     print(f"[ Optimization started (no_sharks={no_sharks}, steps={steps})]")
