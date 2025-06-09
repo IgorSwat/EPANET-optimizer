@@ -4,7 +4,7 @@ defmodule SharedMacro do
     quote do
       @d 10
       @n 100
-      @inf Nx.tensor(1.0e10)
+      def inf, do: Nx.tensor(1.0e10)
       @pi :math.pi()
     end
   end
