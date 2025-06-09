@@ -30,7 +30,7 @@ class EpanetWorker:
                 ub=ub,
                 model=epanet(worker_model_path),
                 time_hrs=time_hrs,
-                measured_df=measured_df
+                measured_df=measured_df.copy()
             )
     
     def __call__(self, solution):
@@ -66,7 +66,8 @@ def evaluate_with_local_worker(solution, model_path, time_hrs, measured_df, dim,
         # 3. Skopiuj plik modelu do katalogu tymczasowego pracownika
         shutil.copy(model_path, worker_model_path)
 
-        _worker = EpanetWorker(_worker_dir, worker_model_path, time_hrs, measured_df, dim, lb, ub)
+        _worker = EpanetWorker(work_dir=_worker_dir, worker_model_path=worker_model_path, time_hrs=time_hrs, 
+                               measured_df=measured_df, dim=dim, lb=lb, ub=ub)
 
     result = _worker(solution)
 
