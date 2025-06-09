@@ -59,10 +59,10 @@ if __name__ == "__main__":
     # print(df_pressure.index)
 
     # Step 5 - run WSO
-    no_sharks = int(sys.argv[2])
-    steps = int(sys.argv[3])
+    no_sharks = int(sys.argv[1])
+    steps = int(sys.argv[2])
 
-    optimizer = Optimizer()
+    optimizer = Optimizer(model_filepath)
 
     # Run the optimization process
     print(f"[ Optimization started (no_sharks={no_sharks}, steps={steps})]")
