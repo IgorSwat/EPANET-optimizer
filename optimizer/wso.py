@@ -18,7 +18,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 # - We assume that parameters are integers / floats in form of numpy array
 class Optimizer:
 
-    def __init__(self, model_filepath: str, no_workers: int = 4):
+    def __init__(self, model_filepath: str, no_workers: int = 24):
         # Initialize hyperparameters - according to WSO paper
         self.p_min = 0.5
         self.p_max = 1.5

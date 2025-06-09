@@ -23,6 +23,8 @@ class RosenbrockProblem(Problem):
     def evaluate(self, x):
         return sum(100.0 * (x[1:] - x[:-1]**2)**2 + (1 - x[:-1])**2)
     
+    def optimal_point(self):
+        return np.ones(self.dim)
 
 class RastriginProblem(Problem):
     def __init__(self, dim, lb, ub):
@@ -32,7 +34,90 @@ class RastriginProblem(Problem):
     def evaluate(self, x):
         return 10 * len(x) + np.sum((x-2)**2 - 10 * np.cos(2 * np.pi * (x-2)))
 
+    def optimal_point(self):
+        return np.zeros(self.dim)
 
+class BentCigarProblem(Problem):
+    def __init__(self, dim, lb, ub):
+        super().__init__(dim, lb, ub)
+
+    @override
+    def evaluate(self, x):
+        return x[0] ** 2 + 1e6 * np.sum(x[1:] ** 2)
+    
+    def optimal_point(self):
+        return np.zeros(self.dim)
+
+class LevyProblem(Problem):
+    def __init__(self, dim, lb, ub):
+        """
+        Initialize the Levy problem.
+
+        Parameters:
+            dim (int): Dimension of the input space.
+            lb: Lower bound for the variables.
+            ub: Upper bound for the variables.
+        """
+        super().__init__(dim, lb, ub)
+
+    @override
+    def evaluate(self, x):
+        d = self.dim
+        # Apply the Levy transformation elementwise.
+        w = 1 + (x - 1) / 4.0
+
+        # First term: sin²(π * w₁)
+        first_term = np.sin(np.pi * w[0])**2
+
+        # Middle terms: For indices 0 to d-2, compute
+        # (w_i - 1)² * (1 + 10*sin²(π*w_i + 1))
+        middle = w[:d-1]
+        middle_terms = np.sum((middle - 1)**2 * (1 + 10 * np.sin(np.pi * middle + 1)**2))
+
+        # Last term: (w_d - 1)² * [1 + sin²(2π * w_d)]
+        last = w[d-1]
+        last_term = (last - 1)**2 * (1 + np.sin(2 * np.pi * last)**2)
+
+        return first_term + middle_terms + last_term
+
+    def optimal_point(self):
+        return np.ones(self.dim)
+    
+class SchwefelProblem(Problem):
+    def __init__(self, dim, lb, ub):
+        super().__init__(dim, lb, ub)
+
+    @override
+    def evaluate(self, x):
+        term = x * np.sin(np.sqrt(np.abs(x)))
+        return 418.9829 * self.dim - np.sum(term)
+
+    def optimal_point(self):
+        return np.ones(self.dim) * 420.9687462275036
+
+class ZakharovProblem(Problem):
+    def __init__(self, dim, lb, ub):
+        super().__init__(dim, lb, ub)
+
+    @override
+    def evaluate(self, x):
+        # Create the indices vector: [0.5, 1.0, 1.5, ..., 0.5*dim]
+        indices = (np.arange(self.dim) + 1) * 0.5
+        
+        # Compute the sum of squares term.
+        sum_square_term = np.sum(x ** 2)
+        
+        # Compute the weighted linear term.
+        linear_term = np.sum(indices * x)
+        
+        # Compute the quadratic and quartic terms based on the linear term.
+        quadratic_term = linear_term ** 2
+        quartic_term = linear_term ** 4
+        
+        return sum_square_term + quadratic_term + quartic_term
+
+    def optimal_point(self):
+        return np.zeros(self.dim)
 # ----------------
 # Helper functions
 # ----------------
