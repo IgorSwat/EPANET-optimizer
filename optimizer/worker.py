@@ -33,13 +33,6 @@ class EpanetWorker:
                 measured_df=measured_df
             )
     
-    def __del__(self):
-        try:
-            os.chdir(self.old_dir)
-            shutil.rmtree(self.work_dir)
-        except Exception as e:
-            print(f"Error during removal of temporal direction: {e}")
-
     def __call__(self, solution):
         return self.problem.evaluate(solution)
     
@@ -55,7 +48,6 @@ def evaluate_with_local_worker(solution, model_path, time_hrs, measured_df, dim,
     global _worker, _worker_dir
 
     if _worker is None:
-        import shutil
         from .worker import EpanetWorker
 
         # Use Process ID as an unique identifier
@@ -65,7 +57,16 @@ def evaluate_with_local_worker(solution, model_path, time_hrs, measured_df, dim,
         
         os.makedirs(_worker_dir, exist_ok=True)
 
-        _worker = EpanetWorker(_worker_dir, "../../" + model_path, time_hrs, measured_df, dim, lb, ub)
+        # 1. Uzyskaj samą nazwę pliku z oryginalnej ścieżki
+        model_filename = os.path.basename(model_path)
+
+        # 2. Stwórz pełną ścieżkę docelową dla pliku w katalogu tymczasowym
+        worker_model_path = os.path.join(_worker_dir, model_filename)
+
+        # 3. Skopiuj plik modelu do katalogu tymczasowego pracownika
+        shutil.copy(model_path, worker_model_path)
+
+        _worker = EpanetWorker(_worker_dir, worker_model_path, time_hrs, measured_df, dim, lb, ub)
 
     result = _worker(solution)
 
