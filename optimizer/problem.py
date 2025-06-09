@@ -43,32 +43,34 @@ class EpanetProblem(Problem):
         pipe_indices = self.network.getLinkPipeIndex()
 
         # Apply new roughness coefficients
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always', UserWarning)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", UserWarning)
 
-            # to jest linia powodująca błąd 211
             self.network.setLinkRoughnessCoeff(pipe_indices, solution)
 
-            # jeśli wśród warningów pojawił się Error 211
-            if any("Error 211" in str(wi.message) for wi in w):
-                print(solution)
+            # Configure simulation duration
+            self.network.setTimeSimulationDuration(self.time_hrs * 3600)
+
+            # Run hydraulics
+            self.network.solveCompleteHydraulics()
+
+            ts = self.network.getComputedTimeSeries()
+        
+            pressure_data = ts.Pressure[:-1]
+            expected_rows = len(self.measured_df.index)
+
+            if pressure_data.shape[0] != expected_rows:
                 return float('inf')
 
-        # Configure simulation duration
-        self.network.setTimeSimulationDuration(self.time_hrs * 3600)
+            # Build DataFrame of simulated pressures
+            node_ids = self.network.getNodeNameID()
+            sim_df = pd.DataFrame(ts.Pressure[:-1], columns=node_ids, index=self.measured_df.index)
 
-        # Run hydraulics
-        self.network.solveCompleteHydraulics()
-        ts = self.network.getComputedTimeSeries()
+            # Select only measured nodes and align
+            sim_sel = sim_df[self.measured_df.columns]
 
-        # Build DataFrame of simulated pressures
-        node_ids = self.network.getNodeNameID()
-        sim_df = pd.DataFrame(ts.Pressure[:-1], columns=node_ids, index=self.measured_df.index)
+            # Compute Mean Squared Error
+            diff = sim_sel.values - self.measured_df.values
+            mse = float(np.mean(diff ** 2))
 
-        # Select only measured nodes and align
-        sim_sel = sim_df[self.measured_df.columns]
-
-        # Compute Mean Squared Error
-        diff = sim_sel.values - self.measured_df.values
-        mse = float(np.mean(diff ** 2))
-        return mse
+            return mse
