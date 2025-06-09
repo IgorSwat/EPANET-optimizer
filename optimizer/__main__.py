@@ -2,7 +2,10 @@ from .finput import read_pressure_timeseries
 from .problem import EpanetProblem
 from .wso import Optimizer
 
+import glob
 import numpy as np
+import os
+import shutil
 import sys
 import yaml
 
@@ -72,7 +75,12 @@ if __name__ == "__main__":
     print("\nOptimal fitness:", loss_best)
     print("Optimal solution:", [f"{x:.3f}" for x in roughness_best], end="\n\n")
 
-    # Step 7 - save and quit EPANET model
+    # Step 7 - remove temporary directions
+    for path in glob.glob("tmp/worker_*"):
+        if os.path.isdir(path):
+            shutil.rmtree(path)
+
+    # Step 8 - save and quit EPANET model
     network.setLinkRoughnessCoeff(pipe_indices, roughness_best)
     network.saveInputFile(config["paths"]["models"]["output"])
 
