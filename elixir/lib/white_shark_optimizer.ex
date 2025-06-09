@@ -24,7 +24,7 @@ defmodule WhiteSharkOptimizer do
   use SharedMacro
   def n, do: @n
   def d, do: @d
-  def inf, do: @inf
+
   @type t :: %WhiteSharkOptimizer{
           problem: Problem.t() | nil,
           hyperparams: Hyperparameters.t | nil,
@@ -126,8 +126,8 @@ defmodule WhiteSharkOptimizer do
       problem: problem,
       hyperparams: hyperparams,
       w_best: w_initial,
-      best_g_fitness: @inf,
-      best_fitness: Nx.broadcast(@inf, {@n})
+      best_g_fitness: inf(),
+      best_fitness: Nx.broadcast(inf(), {@n})
     }
 
     %__MODULE__{}

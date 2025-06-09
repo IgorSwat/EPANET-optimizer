@@ -57,9 +57,8 @@ defmodule Problem do
   If you supply an `optimum` that is not in \([-80,80]^d\) (for example, `420^d`), the random target optimum (sampled from [-80,80]^d) will still force the overall optimum,
   computed as `shift + optimum`, to lie within the desired range.
   """
-  @spec new(map()) :: t()
   def new(%{d: d, fun: orig_fun} = opts) when is_function(orig_fun, 1) do
-    # Default bounds for the overall search space, now matching the [-80,80]^d criterion.
+    # Default bounds for the overall search space, matching the [-80,80]^d criterion.
     default_fields = %{
       l: Nx.broadcast(-100, {d}),
       u: Nx.broadcast(100, {d}),
