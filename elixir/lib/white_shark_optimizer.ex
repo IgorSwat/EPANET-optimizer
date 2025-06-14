@@ -388,7 +388,7 @@ defmodule WhiteSharkOptimizer do
         wso.w,
         wso.w_best,
         wso.key,
-        wso.hyperparams,
+        wso.hyperparams.a2,
         k_tensor,
         max_iter_tensor
       )
@@ -396,14 +396,13 @@ defmodule WhiteSharkOptimizer do
     %{wso | w: w_new, key: new_key}
   end
 
-  defn movement_towards_the_best_white_shark(w, w_best, key, hyperparams, k, max_iterations) do
+  defn movement_towards_the_best_white_shark(w, w_best, key, a2, k, max_iterations) do
     # Get the number of rows and columns from w.
     n = elem(Nx.shape(w), 0)
     d = elem(Nx.shape(w), 1)
 
     # Compute a threshold ss = |1 - exp(- (a2 * k / max_iterations))|
-    # We assume that hyperparams.a2 is a tensor.
-    ss = Nx.abs(1 - Nx.exp(-(hyperparams.a2 * k / max_iterations)))
+    ss = Nx.abs(1 - Nx.exp(-(a2 * k / max_iterations)))
 
     # For each row, sample a random number.
     {r3, key1} = Nx.Random.uniform(key, shape: {n})
