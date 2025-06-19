@@ -2,6 +2,7 @@ from .finput import read_pressure_timeseries
 from .problem import EpanetProblem
 from .wso import Optimizer
 
+import argparse
 import glob
 import numpy as np
 import os
@@ -17,10 +18,21 @@ if __name__ == "__main__":
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)
 
-    # Step 2 - load EPANET model
+    # Step 2 - parse command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--sharks", type=int, default=50, help="Shark population size")
+    parser.add_argument("--steps", type=int, default=10, help="Number of optimer iterations")
+    parser.add_argument("--workers", type=int, default=4, help="Number of parallel workers")
+    parser.add_argument("--verbose", action="store_true", help="Enable additional logging")
+    parser.add_argument("--logging_freq", type=int, default=10, help="Interval between logs")
+    args = parser.parse_args()
+
+    # Step 3 - load EPANET model
     # - Depending on the argument value we either load an example small network, or real bigger network
     try:
-        model_filepath = config["paths"]["models"]["example"] if "example" in sys.argv else config["paths"]["models"]["target"]
+        # model_filepath = config["paths"]["models"]["example"]
+        model_filepath = config["paths"]["models"]["target"]
+        tmp_filepath = config["paths"]["other"]["tmp"]
 
         network = epanet(model_filepath)
     except Exception as e:
@@ -29,7 +41,7 @@ if __name__ == "__main__":
     
     print(f"[ Succesfully loaded model from {model_filepath} ]")
 
-    # Step 3 - Determine roughness value bounds
+    # Step 4 - Determine roughness value bounds
     # - By default, we use min and max from already existing roughness values from the model as bounds
     pipe_indices = network.getLinkPipeIndex()
     n_pipes = len(pipe_indices)        # Number of pipes (= dimensionality)
@@ -44,7 +56,7 @@ if __name__ == "__main__":
     lb = np.full(shape=(n_pipes,), fill_value=min_rough)
     ub = np.full(shape=(n_pipes,), fill_value=max_rough)
 
-    # Step 4 - create an objective function
+    # Step 5 - create an objective function
     # - We use pressure values from P.txt and we define loss as MSE with respect to these values
     df_pressure = read_pressure_timeseries(config["paths"]["data"]["pressure"])
 
@@ -57,19 +69,19 @@ if __name__ == "__main__":
                             time_hrs=24,
                             measured_df=df_pressure)
 
-    # Test on some sample data
-    # print("MSE:", problem.evaluate(ub))
-    # print(df_pressure.index)
+    # Step 6 - run WSO
+    no_sharks = args.sharks
+    no_steps = args.steps
+    no_workers = args.workers
+    print(args.verbose)
 
-    # Step 5 - run WSO
-    no_sharks = int(sys.argv[1])
-    steps = int(sys.argv[2])
-
-    optimizer = Optimizer(model_filepath)
+    # NOTE: You can adjust number of parallel workers
+    optimizer = Optimizer(model_filepath, tmp_filepath, no_workers=no_workers)
 
     # Run the optimization process
-    print(f"[ Optimization started (no_sharks={no_sharks}, steps={steps})]")
-    roughness_best, loss_best = optimizer.optimize(problem, no_sharks=no_sharks, steps=steps, verbose=True)
+    print(f"[ Optimization started (no_sharks={no_sharks}, steps={no_steps})]")
+    roughness_best, loss_best = optimizer.optimize(problem, no_sharks=no_sharks, steps=no_steps, 
+                                                   verbose=args.verbose, logging_freq=args.logging_freq)
     print("[ Optimization finished ]")
 
     print("\nOptimal fitness:", loss_best)
@@ -80,8 +92,13 @@ if __name__ == "__main__":
         if os.path.isdir(path):
             shutil.rmtree(path)
 
-    # Step 8 - save and quit EPANET model
+    # Step 8 - save optimization history to a file
+    with open(config["paths"]["output"]["optim_history"], "w") as f:
+        for item in optimizer.best_fitness_history:
+            f.write(f"{item}\n")
+
+    # Step 9 - save and quit EPANET model
     network.setLinkRoughnessCoeff(pipe_indices, roughness_best)
-    network.saveInputFile(config["paths"]["models"]["output"])
+    network.saveInputFile(config["paths"]["output"]["model"])
 
     network.unload()

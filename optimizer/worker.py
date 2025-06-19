@@ -44,7 +44,7 @@ class EpanetWorker:
 _worker = None
 _worker_dir = None
 
-def evaluate_with_local_worker(solution, model_path, time_hrs, measured_df, dim, lb, ub):
+def evaluate_with_local_worker(solution, model_path, tmp_path, time_hrs, measured_df, dim, lb, ub):
     global _worker, _worker_dir
 
     if _worker is None:
@@ -53,17 +53,14 @@ def evaluate_with_local_worker(solution, model_path, time_hrs, measured_df, dim,
         # Use Process ID as an unique identifier
         pid = os.getpid()
         base_dir = os.getcwd()
-        _worker_dir = os.path.join(base_dir, f"tmp/worker_{pid}")
+        _worker_dir = os.path.join(base_dir, tmp_path, f"worker_{pid}")
         
         os.makedirs(_worker_dir, exist_ok=True)
 
-        # 1. Uzyskaj samą nazwę pliku z oryginalnej ścieżki
         model_filename = os.path.basename(model_path)
 
-        # 2. Stwórz pełną ścieżkę docelową dla pliku w katalogu tymczasowym
         worker_model_path = os.path.join(_worker_dir, model_filename)
 
-        # 3. Skopiuj plik modelu do katalogu tymczasowego pracownika
         shutil.copy(model_path, worker_model_path)
 
         _worker = EpanetWorker(work_dir=_worker_dir, worker_model_path=worker_model_path, time_hrs=time_hrs, 

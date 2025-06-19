@@ -25,3 +25,6 @@ epanet/files/*_temp*
 *.bin
 
 epanet/files/worker*
+
+output/**
+!output/.gitkeep

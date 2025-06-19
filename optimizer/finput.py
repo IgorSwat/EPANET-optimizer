@@ -7,10 +7,6 @@ import pandas as pd
 
 # Pressure data file parser (for P.txt)
 def read_pressure_timeseries(filepath: str) -> pd.DataFrame:
-    """
-    Wczytuje plik z czasowym szeregiem ciśnień dla wielu węzłów.
-    Zwraca DataFrame z indexem czasu (datetime64) i kolumnami dla każdego węzła.
-    """
     records = []
     current_node = None
 

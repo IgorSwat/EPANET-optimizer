@@ -5,10 +5,131 @@ import pyswarms as ps
 import random
 import time
 
-from optimizer.wso import Optimizer
 from optimizer.problem import Problem
 from typing import override
 from tqdm import tqdm
+
+
+# --------------------
+# Dumb optimizer class
+# --------------------
+
+class Optimizer:
+
+    def __init__(self):
+        # Initialize hyperparameters - according to WSO paper
+        self.p_min = 0.5
+        self.p_max = 1.5
+        self.tau = 4.125
+        self.mu = 2 / abs(2 - self.tau - np.sqrt(self.tau ** 2 - 4 * self.tau))
+        self.f_min = 0.07
+        self.f_max = 0.75
+        self.a0 = 6.25
+        self.a1 = 100.0
+        self.a2 = 0.0005
+
+        # NOTE: An additional hyperparameter
+        self.b_scale = 0.9
+
+        # Optimization history
+        # - Saved optimization progress
+        self.best_fitness_history = []
+    
+
+    def optimize(self, problem: Problem, no_sharks: int = 10, steps: int = 10) -> tuple[np.ndarray, float]:
+        ''' Performs WSO to find a solution that minimizes problem.evaluate() function values 
+        
+            Returns a pair of (best_solution, best_solution_eval)
+        '''
+
+        # Step 0 - clear history tables
+        self.best_fitness_history.clear()
+
+        # Step 1 - Generate initial population with respect dimensionality
+        # - W for shark positions
+        # - v for shark velocities
+        W = np.random.uniform(problem.lb, problem.ub, (no_sharks, problem.dim))
+        v = np.zeros_like(W)      # zeros_like() automatically copies dimensionality of an array
+
+        # Step 2 - Evaluate initial population fitness
+        # - Iterates over population ranks (position of a single shark) and creates 1D fitness vector
+        fitness = np.array([problem.evaluate(pos) for pos in W])
+        fitness_min = np.min(fitness)
+        W_best = W.copy()                   # 2D matrix
+        W_gbest = W[np.argmin(fitness)]     # 1D vector
+
+        # Main WSO loop
+        for k in range(1, steps + 1):
+
+            # Calculate adaptive parameters
+            p1 = self.p_max + (self.p_max - self.p_min) * np.exp(-(4 * k / steps)**2)
+            p2 = self.p_min + (self.p_max - self.p_min) * np.exp(-(4 * k / steps)**2)
+            mv = 1 / (self.a0 + np.exp((steps / 2.0 - k) / self.a1))
+            s_s = abs(1 - np.exp(-self.a2 * k / steps))
+
+            # Step 3 - update shark velocities
+            # - NOTE: Can be additionally vectorized
+            nu = np.random.randint(0, no_sharks, no_sharks)
+            for i in range(no_sharks):
+                c1 = random.random()
+                c2 = random.random()
+                v[i, :] = self.mu * (v[i, :] + p1 * c1 * (W_gbest - W[i, :]) + p2 * c2 * (W_best[nu[i], :] - W[i, :]))
+            
+            # Step 4 - update positions with wavy motion or random allocation
+            f = self.f_min + (self.f_max - self.f_min) / (self.f_max + self.f_min)
+            for i in range(no_sharks):
+                a = W[i, :] > problem.ub
+                b = W[i, :] < problem.lb
+                w0 = np.logical_xor(a, b)
+                if random.random() < mv:
+                    W[i][w0] = problem.ub[w0] * a[w0] + problem.lb[w0] * b[w0]
+                else:
+                    shift = v[i, :] / f
+                    W_new = W[i, :] + shift
+
+                    # Bounce back if needed
+                    if not np.any((problem.lb > W[i, :]) | (problem.ub < W[i, :])) and np.any((problem.lb > W_new) | (problem.ub < W_new)):
+                        # Adjust position and velocity
+                        P = np.clip(W_new, problem.lb, problem.ub)
+                        back_shift = P - W_new
+
+                        W[i, :] = P + back_shift * self.b_scale
+                        v[i, :] = -v[i, :] * self.b_scale
+                    else:
+                        W[i, :] = W_new
+
+            # Step 5 - school movement update
+            for i in range(no_sharks):
+                # TODO: Is this thing even correct?
+                if random.random() <= s_s:
+                    D = np.abs(np.random.rand() * (W_gbest - W[i, :]))  
+                    if i == 0:
+                        sgn = np.sign(np.random.rand(problem.dim) - 0.5)
+                        W[i, :] = W_gbest + np.random.rand(problem.dim) * D * sgn
+                    else:
+                        sgn = np.sign(np.random.rand(problem.dim) - 0.5)
+                        tmp = W_gbest + np.random.rand(problem.dim) * D * sgn
+                        W[i, :] = (W[i, :] + tmp) / (2 * random.random())
+            
+            # Step 6 - return the sharks to the original solution space
+            W = np.clip(W, problem.lb, problem.ub)
+
+            # Step 7 - evaluate and update best positions
+            for i in range(no_sharks):
+                # TODO: Should we discard such an answer or clamp values into [lb, ub] range?
+                if np.all((W[i, :] >= problem.lb) & (W[i, :] <= problem.ub)):
+                    fit = problem.evaluate(W[i, :])
+                    if fit < fitness[i]:
+                        W_best[i, :] = W[i, :]
+                        fitness[i] = fit
+                    if fitness[i] < fitness_min:
+                        fitness_min = fitness[i]
+                        W_gbest = W_best[i].copy()
+            
+            # Save optimization progress to history tables
+            self.best_fitness_history.append(fitness_min)
+        
+        return W_gbest, fitness_min
 
 
 # ---------------
@@ -118,6 +239,8 @@ class ZakharovProblem(Problem):
 
     def optimal_point(self):
         return np.zeros(self.dim)
+
+
 # ----------------
 # Helper functions
 # ----------------
