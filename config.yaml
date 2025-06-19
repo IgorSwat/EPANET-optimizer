@@ -1,7 +1,11 @@
-paths:
+paths:  # NOTE: All of those are relative paths
   models:
     example: "epanet/files/example.inp"
     target: "epanet/files/network.inp"
-    output: "epanet/files/output.inp"
   data:
     pressure: "epanet/files/P.txt"
+  output:
+    model: "output/output.inp"
+    optim_history: "output/fitness.txt"
+  other:
+    tmp: "tmp"   # Can be adjusted if needed

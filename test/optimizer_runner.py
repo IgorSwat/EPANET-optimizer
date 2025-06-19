@@ -1,10 +1,9 @@
 import argparse
 import time
 import numpy as np
-from optimizer.wso import Optimizer
 from optimizer.problem import Problem
 from typing_extensions import override
-from test.wso_test import RosenbrockProblem, RastriginProblem, BentCigarProblem, LevyProblem, SchwefelProblem, ZakharovProblem
+from test.wso_test import Optimizer, RosenbrockProblem, RastriginProblem, BentCigarProblem, LevyProblem, SchwefelProblem, ZakharovProblem
 # ------------------------------------------------------------------
 # ShiftedProblem Wrapper and Factory
 # ------------------------------------------------------------------
