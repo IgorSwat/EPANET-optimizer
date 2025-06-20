@@ -1,6 +1,7 @@
 from .finput import read_pressure_timeseries
 from .problem import EpanetProblem
-from .wso import Optimizer
+from .pso import PsoOptimizer
+from .wso import WsoOptimizer
 
 import argparse
 import glob
@@ -76,10 +77,13 @@ if __name__ == "__main__":
     print(args.verbose)
 
     # NOTE: You can adjust number of parallel workers
-    optimizer = Optimizer(model_filepath, tmp_filepath, no_workers=no_workers)
+    # optimizer = PsoOptimizer(model_filepath, tmp_filepath, no_workers=no_workers)
+    optimizer = WsoOptimizer(model_filepath, tmp_filepath, no_workers=no_workers)
 
     # Run the optimization process
     print(f"[ Optimization started (no_sharks={no_sharks}, steps={no_steps})]")
+    # roughness_best, loss_best = optimizer.optimize(problem, no_particles=no_sharks, steps=no_steps, 
+    #                                                verbose=args.verbose, logging_freq=args.logging_freq)
     roughness_best, loss_best = optimizer.optimize(problem, no_sharks=no_sharks, steps=no_steps, 
                                                    verbose=args.verbose, logging_freq=args.logging_freq)
     print("[ Optimization finished ]")

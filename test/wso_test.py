@@ -14,7 +14,7 @@ from tqdm import tqdm
 # Dumb optimizer class
 # --------------------
 
-class Optimizer:
+class WsoOptimizer:
 
     def __init__(self):
         # Initialize hyperparameters - according to WSO paper
@@ -288,7 +288,7 @@ def run_single_trial(dimensions: int,
     t_pso = time.time() - t0
 
     # --- WSO ---
-    wso = Optimizer()
+    wso = WsoOptimizer()
     t0 = time.time()
     best_pos_wso, best_cost_wso = wso.optimize(
         problem,
@@ -398,7 +398,7 @@ def wso_test() -> None:
     dim = 100           # Dimension of the problem
 
     # Define WSO
-    wso = Optimizer()
+    wso = WsoOptimizer()
 
     # random.seed(410375)
     # np.random.seed(410375)

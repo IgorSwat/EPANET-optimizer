@@ -3,7 +3,7 @@ import time
 import numpy as np
 from optimizer.problem import Problem
 from typing_extensions import override
-from test.wso_test import Optimizer, RosenbrockProblem, RastriginProblem, BentCigarProblem, LevyProblem, SchwefelProblem, ZakharovProblem
+from test.wso_test import WsoOptimizer, RosenbrockProblem, RastriginProblem, BentCigarProblem, LevyProblem, SchwefelProblem, ZakharovProblem
 # ------------------------------------------------------------------
 # ShiftedProblem Wrapper and Factory
 # ------------------------------------------------------------------
@@ -83,12 +83,12 @@ class OptimizerRunner:
         problem = create_shifted_problem(base_cls, d, base_lb, base_ub)
 
         start_time = time.time()
-        optimizer = Optimizer()
+        optimizer = WsoOptimizer()
         best_pos, best_cost = optimizer.optimize(problem, no_sharks=n, steps=max_iterations)
         end_time = time.time()
 
         elapsed_ms = int((end_time - start_time) * 1000)
-        optim_n = Optimizer.n() if hasattr(Optimizer, 'n') else n
+        optim_n = WsoOptimizer.n() if hasattr(WsoOptimizer, 'n') else n
         print(f"PY {max_iterations} {optim_n} {d} {name} {elapsed_ms} {OptimizerRunner.format_solution(best_cost)}")
 
     @staticmethod
@@ -110,7 +110,7 @@ class OptimizerRunner:
         ))
 
         start_time = time.time()
-        optimizer = Optimizer()
+        optimizer = WsoOptimizer()
         best_pos, best_cost = optimizer.optimize(problem, no_sharks=n, steps=max_iterations)
         end_time = time.time()
         elapsed_ms = (end_time - start_time) * 1000.0

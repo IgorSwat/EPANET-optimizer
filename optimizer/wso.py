@@ -14,7 +14,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 # Main WSO mechanism
 # - Directly connected with a given problem by taking evaluator, dimentionality and parameter ranges as input
 # - We assume that parameters are integers / floats in form of numpy array
-class Optimizer:
+class WsoOptimizer:
 
     def __init__(self, model_filepath: str, tmp_filepath: str,
                  no_workers: int = 4):
