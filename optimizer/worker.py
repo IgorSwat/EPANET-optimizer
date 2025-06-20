@@ -24,17 +24,23 @@ class EpanetWorker:
 
             os.chdir(self.work_dir)
 
+            self.model = epanet(worker_model_path)
+
             self.problem = EpanetProblem(
                 dim=dim,
                 lb=lb,
                 ub=ub,
-                model=epanet(worker_model_path),
+                model=self.model,
                 time_hrs=time_hrs,
                 measured_df=measured_df.copy()
             )
     
     def __call__(self, solution):
         return self.problem.evaluate(solution)
+    
+    # NOTE: Very important to close loaded EPANET model at the end of object's lifetime
+    def __del__(self):
+        self.model.unload()
     
 
 # ----------------------------------
