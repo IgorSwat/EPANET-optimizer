@@ -30,3 +30,8 @@ output/**
 !output/.gitkeep
 elixir/deps/*
 elixir/_build/*
+compare/*
+elixir/deps/*
+elixir/_build/*
+tmp/*
+
