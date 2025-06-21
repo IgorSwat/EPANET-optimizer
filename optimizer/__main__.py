@@ -74,7 +74,6 @@ if __name__ == "__main__":
     no_sharks = args.sharks
     no_steps = args.steps
     no_workers = args.workers
-    print(args.verbose)
 
     # NOTE: You can adjust number of parallel workers
     # optimizer = PsoOptimizer(model_filepath, tmp_filepath, no_workers=no_workers)

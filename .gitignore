@@ -27,4 +27,7 @@ epanet/files/*_temp*
 epanet/files/worker*
 
 output/**
+!output/output.inp
+!output/destabilized.inp
+!output/fitness.txt
 !output/.gitkeep
