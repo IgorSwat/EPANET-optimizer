@@ -1,0 +1,54 @@
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+[ Succesfully loaded model from epanet/files/network.inp ]
+
+Initial solution: [0.05 0.05 0.05 5.   0.05 0.05 5.   5.   0.05 5.   0.05 0.05 0.05 0.05
+ 5.   0.05 0.05 0.05 5.   5.   0.05 5.   0.05 0.05 0.05 5.   0.05 0.05
+ 5.   0.05 0.05 5.   5.   5.   5.   5.   5.   5.   5.   5.   0.05 0.05
+ 0.05 0.05 0.05 5.   5.   5.   0.05 0.05 5.   5.   5.   5.   5.   5.
+ 5.   5.   5.   5.   5.   5.   0.05 0.05 0.05 0.05 0.05 5.   0.05 0.05
+ 0.05 0.05 5.   5.   0.05 0.05 0.05 5.   5.   5.   5.   5.   0.05 0.05
+ 0.05 0.05 0.05 5.   5.   5.   5.   5.   5.   5.   5.   5.   0.05 0.05
+ 0.05 0.05 0.05 0.05 0.05 0.05 0.05 5.   5.   5.   5.   5.   0.05 0.05
+ 0.05 5.   0.05 0.05 0.05 0.05 0.5  0.05 0.05 0.05 0.05 0.05 0.05 5.
+ 5.   0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05
+ 0.05 5.   0.05 0.05 5.  ]
+
+[ Succesfully loaded data from epanet/files/P.txt ]
+False
+init finished: init time 0.034001827239990234 s
+[ Optimization started (no_sharks=48, steps=5)]
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+first loop finished: first loop time 3.7665233612060547 s
+finished: optimizer time 22.5265474319458 s
+[ Optimization finished ]
+
+Optimal fitness: 0.027911757228394563
+Optimal solution: ['1.723', '0.684', '4.202', '6.688', '4.455', '9.952', '4.957', '7.109', '0.266', '4.272', '4.870', '7.690', '2.631', '1.396', '3.918', '4.594', '6.937', '3.856', '6.473', '3.045', '0.913', '4.389', '9.123', '1.033', '7.067', '1.930', '6.390', '2.591', '5.693', '2.773', '8.427', '2.312', '2.175', '5.112', '2.438', '2.800', '0.751', '7.883', '9.257', '3.999', '6.605', '9.322', '5.669', '5.859', '7.587', '4.166', '1.765', '1.591', '5.595', '3.004', '3.059', '1.472', '8.813', '5.801', '1.193', '7.623', '1.041', '7.780', '4.878', '2.664', '5.487', '1.602', '2.158', '7.524', '6.371', '5.863', '7.232', '8.912', '3.710', '3.696', '8.560', '9.282', '6.985', '7.795', '7.622', '2.498', '7.982', '3.595', '7.993', '9.415', '4.086', '4.996', '3.654', '3.202', '6.364', '9.405', '4.574', '1.082', '9.113', '9.778', '9.621', '6.724', '9.413', '9.222', '4.465', '8.828', '1.069', '1.695', '7.885', '6.606', '0.264', '8.712', '2.589', '8.272', '4.348', '7.569', '4.503', '2.538', '0.487', '1.350', '3.552', '2.629', '3.343', '5.616', '6.628', '7.426', '0.468', '2.018', '1.097', '8.058', '1.870', '7.772', '3.957', '6.893', '1.865', '8.071', '3.474', '2.056', '9.674', '9.731', '9.662', '7.183', '3.333', '9.222', '1.600', '7.654', '8.516', '4.274', '8.771', '5.068', '7.822', '9.112', '7.069', '8.820', '9.346']
+
+Close toolkit for the input file "network". EPANET Toolkit is unloaded.
+

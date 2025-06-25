@@ -1,0 +1,86 @@
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+[ Succesfully loaded model from epanet/files/network.inp ]
+
+Initial solution: [0.05 0.05 0.05 5.   0.05 0.05 5.   5.   0.05 5.   0.05 0.05 0.05 0.05
+ 5.   0.05 0.05 0.05 5.   5.   0.05 5.   0.05 0.05 0.05 5.   0.05 0.05
+ 5.   0.05 0.05 5.   5.   5.   5.   5.   5.   5.   5.   5.   0.05 0.05
+ 0.05 0.05 0.05 5.   5.   5.   0.05 0.05 5.   5.   5.   5.   5.   5.
+ 5.   5.   5.   5.   5.   5.   0.05 0.05 0.05 0.05 0.05 5.   0.05 0.05
+ 0.05 0.05 5.   5.   0.05 0.05 0.05 5.   5.   5.   5.   5.   0.05 0.05
+ 0.05 0.05 0.05 5.   5.   5.   5.   5.   5.   5.   5.   5.   0.05 0.05
+ 0.05 0.05 0.05 0.05 0.05 0.05 0.05 5.   5.   5.   5.   5.   0.05 0.05
+ 0.05 5.   0.05 0.05 0.05 0.05 0.5  0.05 0.05 0.05 0.05 0.05 0.05 5.
+ 5.   0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05
+ 0.05 5.   0.05 0.05 5.  ]
+
+[ Succesfully loaded data from epanet/files/P.txt ]
+True
+init finished: init time 0.03402566909790039 s
+[ Optimization started (no_sharks=96, steps=5)]
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+first loop finished: first loop time 3.8462159633636475 s
+
+Progress: 20% | Best fitness: 0.02964499
+
+Progress: 40% | Best fitness: 0.02892444
+
+Progress: 60% | Best fitness: 0.02892444
+
+Progress: 80% | Best fitness: 0.02892444
+
+Progress: 100% | Best fitness: 0.02747302
+finished: optimizer time 22.843681573867798 s
+[ Optimization finished ]
+
+Optimal fitness: 0.027473020660364143
+Optimal solution: ['1.005', '0.199', '8.705', '0.077', '5.773', '4.996', '1.835', '2.698', '7.849', '8.833', '2.927', '3.467', '6.439', '4.608', '8.040', '8.494', '7.651', '2.947', '1.100', '7.615', '7.488', '0.764', '4.870', '7.451', '8.165', '2.673', '5.872', '3.190', '1.237', '1.039', '4.821', '4.518', '6.554', '9.815', '1.185', '8.836', '1.173', '7.724', '3.803', '9.465', '4.318', '6.208', '5.783', '9.399', '2.701', '8.431', '9.939', '5.931', '5.836', '5.670', '5.273', '7.731', '7.390', '1.528', '8.322', '7.731', '1.647', '6.375', '0.782', '2.635', '2.065', '8.567', '5.805', '9.997', '2.294', '6.776', '2.774', '2.329', '9.754', '7.312', '2.063', '7.567', '6.598', '1.843', '1.064', '5.225', '2.164', '5.866', '2.517', '5.707', '1.356', '8.776', '6.453', '5.094', '2.588', '6.072', '1.454', '2.178', '5.128', '6.287', '7.742', '1.538', '1.206', '0.609', '2.039', '2.288', '5.085', '0.800', '6.220', '3.071', '5.998', '2.609', '1.622', '9.460', '9.681', '8.889', '4.498', '3.302', '5.988', '6.079', '4.912', '9.359', '5.362', '4.498', '3.803', '1.873', '5.783', '9.474', '5.216', '6.364', '8.924', '6.098', '0.615', '0.201', '1.182', '1.796', '9.943', '4.108', '0.137', '7.026', '4.471', '2.779', '4.932', '3.837', '3.144', '4.492', '5.039', '3.216', '3.954', '1.527', '1.055', '9.293', '8.906', '9.680', '6.217']
+

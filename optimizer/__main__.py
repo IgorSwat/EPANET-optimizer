@@ -83,8 +83,10 @@ if __name__ == "__main__":
     print(f"[ Optimization started (no_sharks={no_sharks}, steps={no_steps})]")
     # roughness_best, loss_best = optimizer.optimize(problem, no_particles=no_sharks, steps=no_steps, 
     #                                                verbose=args.verbose, logging_freq=args.logging_freq)
-    roughness_best, loss_best = optimizer.optimize(problem, no_sharks=no_sharks, steps=no_steps, 
-                                                   verbose=args.verbose, logging_freq=args.logging_freq)
+    # roughness_best, loss_best = optimizer.optimize(problem, no_sharks=no_sharks, steps=no_steps, 
+    #                                                verbose=args.verbose, logging_freq=args.logging_freq)
+    loss_best = problem.evaluate(network.getLinkRoughnessCoeff())
+    roughness_best = []
     print("[ Optimization finished ]")
 
     print("\nOptimal fitness:", loss_best)

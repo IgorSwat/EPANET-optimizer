@@ -1,0 +1,301 @@
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+[ Succesfully loaded model from epanet/files/network.inp ]
+
+Initial solution: [0.05 0.05 0.05 5.   0.05 0.05 5.   5.   0.05 5.   0.05 0.05 0.05 0.05
+ 5.   0.05 0.05 0.05 5.   5.   0.05 5.   0.05 0.05 0.05 5.   0.05 0.05
+ 5.   0.05 0.05 5.   5.   5.   5.   5.   5.   5.   5.   5.   0.05 0.05
+ 0.05 0.05 0.05 5.   5.   5.   0.05 0.05 5.   5.   5.   5.   5.   5.
+ 5.   5.   5.   5.   5.   5.   0.05 0.05 0.05 0.05 0.05 5.   0.05 0.05
+ 0.05 0.05 5.   5.   0.05 0.05 0.05 5.   5.   5.   5.   5.   0.05 0.05
+ 0.05 0.05 0.05 5.   5.   5.   5.   5.   5.   5.   5.   5.   0.05 0.05
+ 0.05 0.05 0.05 0.05 0.05 0.05 0.05 5.   5.   5.   5.   5.   0.05 0.05
+ 0.05 5.   0.05 0.05 0.05 0.05 0.5  0.05 0.05 0.05 0.05 0.05 0.05 5.
+ 5.   0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05 0.05
+ 0.05 5.   0.05 0.05 5.  ]
+
+[ Succesfully loaded data from epanet/files/P.txt ]
+True
+[ Optimization started (no_sharks=48, steps=10000)]
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+EPANET version 20200 loaded (EPyT version v1.2.1 - Last Update: 09/01/2024).
+Input File network.inp loaded successfully.
+
+first loop finished: first loop time 3.956542491912842 s
+
+Progress: 1% | Best fitness: 0.02502684
+
+Progress: 2% | Best fitness: 0.02464586
+
+Progress: 3% | Best fitness: 0.02451174
+
+Progress: 4% | Best fitness: 0.02451174
+
+Progress: 5% | Best fitness: 0.02431428
+
+Progress: 6% | Best fitness: 0.02430831
+
+Progress: 7% | Best fitness: 0.02430831
+
+Progress: 8% | Best fitness: 0.02430831
+
+Progress: 9% | Best fitness: 0.02430831
+
+Progress: 10% | Best fitness: 0.02430831
+
+Progress: 11% | Best fitness: 0.02430831
+
+Progress: 12% | Best fitness: 0.02428911
+
+Progress: 13% | Best fitness: 0.02428911
+
+Progress: 14% | Best fitness: 0.02428911
+
+Progress: 15% | Best fitness: 0.02428911
+
+Progress: 16% | Best fitness: 0.02428911
+
+Progress: 17% | Best fitness: 0.02428911
+
+Progress: 18% | Best fitness: 0.02428911
+
+Progress: 19% | Best fitness: 0.02428911
+
+Progress: 20% | Best fitness: 0.02428911
+
+Progress: 21% | Best fitness: 0.02428911
+
+Progress: 22% | Best fitness: 0.02428911
+
+Progress: 23% | Best fitness: 0.02428911
+
+Progress: 24% | Best fitness: 0.02426298
+
+Progress: 25% | Best fitness: 0.02426298
+
+Progress: 26% | Best fitness: 0.02426298
+
+Progress: 27% | Best fitness: 0.02426298
+
+Progress: 28% | Best fitness: 0.02426298
+
+Progress: 28% | Best fitness: 0.02426298
+
+Progress: 30% | Best fitness: 0.02426298
+
+Progress: 31% | Best fitness: 0.02426298
+
+Progress: 32% | Best fitness: 0.02426298
+
+Progress: 33% | Best fitness: 0.02426113
+
+Progress: 34% | Best fitness: 0.02424813
+
+Progress: 35% | Best fitness: 0.02423955
+
+Progress: 36% | Best fitness: 0.02423135
+
+Progress: 37% | Best fitness: 0.02422886
+
+Progress: 38% | Best fitness: 0.02422886
+
+Progress: 39% | Best fitness: 0.02422852
+
+Progress: 40% | Best fitness: 0.02422852
+
+Progress: 41% | Best fitness: 0.02422852
+
+Progress: 42% | Best fitness: 0.02422852
+
+Progress: 43% | Best fitness: 0.02422852
+
+Progress: 44% | Best fitness: 0.02422852
+
+Progress: 45% | Best fitness: 0.02422852
+
+Progress: 46% | Best fitness: 0.02422852
+
+Progress: 47% | Best fitness: 0.02422852
+
+Progress: 48% | Best fitness: 0.02422852
+
+Progress: 49% | Best fitness: 0.02422852
+
+Progress: 50% | Best fitness: 0.02422841
+
+Progress: 51% | Best fitness: 0.02422841
+
+Progress: 52% | Best fitness: 0.02422841
+
+Progress: 53% | Best fitness: 0.02422841
+
+Progress: 54% | Best fitness: 0.02422841
+
+Progress: 55% | Best fitness: 0.02422841
+
+Progress: 56% | Best fitness: 0.02422841
+
+Progress: 56% | Best fitness: 0.02422841
+
+Progress: 57% | Best fitness: 0.02422841
+
+Progress: 59% | Best fitness: 0.02422841
+
+Progress: 60% | Best fitness: 0.02422841
+
+Progress: 61% | Best fitness: 0.02422841
+
+Progress: 62% | Best fitness: 0.02422820
+
+Progress: 63% | Best fitness: 0.02422820
+
+Progress: 64% | Best fitness: 0.02422820
+
+Progress: 65% | Best fitness: 0.02422820
+
+Progress: 66% | Best fitness: 0.02422820
+
+Progress: 67% | Best fitness: 0.02422820
+
+Progress: 68% | Best fitness: 0.02422820
+
+Progress: 69% | Best fitness: 0.02422820
+
+Progress: 70% | Best fitness: 0.02422820
+
+Progress: 71% | Best fitness: 0.02422820
+
+Progress: 72% | Best fitness: 0.02422820
+
+Progress: 73% | Best fitness: 0.02422820
+
+Progress: 74% | Best fitness: 0.02422820
+
+Progress: 75% | Best fitness: 0.02422820
+
+Progress: 76% | Best fitness: 0.02422820
+
+Progress: 77% | Best fitness: 0.02422820
+
+Progress: 78% | Best fitness: 0.02422820
+
+Progress: 79% | Best fitness: 0.02422820
+
+Progress: 80% | Best fitness: 0.02422820
+
+Progress: 81% | Best fitness: 0.02422820
+
+Progress: 82% | Best fitness: 0.02422820
+
+Progress: 83% | Best fitness: 0.02422820
+
+Progress: 84% | Best fitness: 0.02422820
+
+Progress: 85% | Best fitness: 0.02422820
+
+Progress: 86% | Best fitness: 0.02422820
+
+Progress: 87% | Best fitness: 0.02422820
+
+Progress: 88% | Best fitness: 0.02422820
+
+Progress: 89% | Best fitness: 0.02422820
+
+Progress: 90% | Best fitness: 0.02422820
+
+Progress: 91% | Best fitness: 0.02422820
+
+Progress: 92% | Best fitness: 0.02422820
+
+Progress: 93% | Best fitness: 0.02422820
+
+Progress: 94% | Best fitness: 0.02422820
+
+Progress: 95% | Best fitness: 0.02422820
+
+Progress: 96% | Best fitness: 0.02422820
+
+Progress: 97% | Best fitness: 0.02422811
+
+Progress: 98% | Best fitness: 0.02422811
+
+Progress: 99% | Best fitness: 0.02422811
+
+Progress: 100% | Best fitness: 0.02422811
+finished: optimizer time 37636.1431825161 s
+[ Optimization finished ]
+
+Optimal fitness: 0.024228108503897592
+Optimal solution: ['0.440', '0.035', '9.189', '6.384', '3.139', '4.753', '3.286', '1.112', '8.600', '1.455', '5.666', '6.947', '4.938', '2.843', '9.099', '9.807', '3.337', '9.338', '8.767', '1.064', '1.385', '5.786', '6.770', '8.478', '9.864', '3.499', '3.059', '8.842', '8.678', '5.994', '0.537', '6.284', '4.229', '9.065', '8.470', '5.985', '5.420', '4.196', '3.217', '5.874', '6.714', '8.655', '7.688', '5.093', '7.782', '4.384', '4.263', '4.079', '7.444', '2.406', '8.368', '0.695', '7.124', '7.880', '4.278', '7.381', '9.470', '0.848', '1.772', '3.413', '9.856', '8.162', '5.946', '6.126', '4.212', '6.637', '6.750', '7.980', '7.734', '2.578', '4.615', '3.090', '4.901', '1.383', '7.219', '3.668', '0.807', '2.049', '7.438', '1.431', '1.778', '8.966', '1.471', '3.613', '6.729', '9.711', '8.544', '8.997', '2.959', '8.692', '5.298', '3.705', '7.873', '3.855', '6.699', '7.028', '6.545', '1.030', '4.506', '4.562', '2.862', '7.425', '6.911', '6.617', '0.398', '8.217', '3.323', '6.565', '4.116', '1.943', '9.735', '3.909', '3.648', '8.873', '1.581', '3.620', '3.193', '9.695', '6.183', '1.891', '5.942', '1.247', '6.434', '4.470', '5.240', '2.366', '0.849', '4.926', '6.526', '8.638', '0.964', '8.374', '8.773', '5.505', '8.580', '7.716', '9.921', '7.796', '7.908', '0.442', '0.664', '9.365', '7.642', '1.192', '5.450']
+
+Close toolkit for the input file "network". EPANET Toolkit is unloaded.
+
